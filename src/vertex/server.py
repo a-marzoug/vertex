@@ -11,13 +11,17 @@ from vertex.prompts.linear import formulate_lp, interpret_solution
 from vertex.prompts.mip import formulate_mip
 from vertex.tools.analysis import (
     InfeasibilityResult,
+    ModelStats,
     WhatIfResult,
     analyze_what_if as _analyze_what_if,
     diagnose_infeasibility as _diagnose_infeasibility,
+    get_model_stats as _get_model_stats,
     solve_rcpsp as _solve_rcpsp,
 )
+from vertex.tools.cp import NQueensResult, SudokuResult, solve_n_queens, solve_sudoku
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
+from vertex.tools.multiobjective import MultiObjectiveResult, solve_multi_objective
 from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_mst, compute_multi_commodity_flow, compute_shortest_path
 from vertex.tools.scheduling import (
     compute_bin_packing,
@@ -123,6 +127,67 @@ def diagnose_infeasibility(
         objective_sense: "maximize" or "minimize".
     """
     return _diagnose_infeasibility(variables, constraints, objective_coefficients, objective_sense)
+
+
+@mcp.tool()
+def get_model_statistics(
+    variables: list[dict],
+    constraints: list[dict],
+) -> ModelStats:
+    """
+    Get statistics about an optimization model.
+
+    Args:
+        variables: Variable definitions.
+        constraints: Constraint definitions.
+
+    Returns:
+        Model size, sparsity, and type breakdown.
+    """
+    return _get_model_stats(variables, constraints)
+
+
+@mcp.tool()
+def solve_pareto_frontier(
+    variables: list[dict],
+    constraints: list[dict],
+    objectives: dict[str, dict[str, float]],
+    num_points: int = 10,
+    objective_senses: dict[str, str] | None = None,
+) -> MultiObjectiveResult:
+    """
+    Solve multi-objective optimization and find Pareto frontier.
+
+    Args:
+        variables: Variable definitions.
+        constraints: Constraint definitions.
+        objectives: Dict of objective_name -> {var: coef} mappings.
+        num_points: Number of Pareto points to generate.
+        objective_senses: Dict of objective_name -> "maximize"/"minimize".
+    """
+    return solve_multi_objective(variables, constraints, objectives, num_points, objective_senses)
+
+
+@mcp.tool()
+def solve_sudoku_puzzle(grid: list[list[int]]) -> SudokuResult:
+    """
+    Solve a Sudoku puzzle using constraint programming.
+
+    Args:
+        grid: 9x9 grid with 0 for empty cells, 1-9 for filled cells.
+    """
+    return solve_sudoku(grid)
+
+
+@mcp.tool()
+def solve_n_queens_puzzle(n: int) -> NQueensResult:
+    """
+    Solve N-Queens problem - place N queens on NxN board with no attacks.
+
+    Args:
+        n: Board size and number of queens.
+    """
+    return solve_n_queens(n)
 
 
 @mcp.tool()

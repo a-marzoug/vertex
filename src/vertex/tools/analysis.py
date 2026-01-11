@@ -249,3 +249,60 @@ def solve_rcpsp(
         "schedule": sorted(schedule, key=lambda x: x["start"]),
         "solve_time_ms": elapsed,
     }
+
+
+class ModelStats(BaseModel):
+    """Statistics about an optimization model."""
+
+    num_variables: int
+    num_constraints: int
+    num_nonzeros: int
+    density: float = Field(description="Fraction of non-zero coefficients")
+    variable_types: dict[str, int] = Field(default_factory=dict)
+    constraint_types: dict[str, int] = Field(default_factory=dict)
+
+
+def get_model_stats(
+    variables: list[dict],
+    constraints: list[dict],
+) -> ModelStats:
+    """
+    Get statistics about an optimization model.
+
+    Args:
+        variables: Variable definitions.
+        constraints: Constraint definitions.
+
+    Returns:
+        ModelStats with size and sparsity information.
+    """
+    num_vars = len(variables)
+    num_constrs = len(constraints)
+
+    # Count non-zeros
+    nonzeros = sum(len(c.get("coefficients", {})) for c in constraints)
+
+    # Density = nonzeros / (vars * constraints)
+    max_nonzeros = num_vars * num_constrs if num_constrs > 0 else 1
+    density = nonzeros / max_nonzeros if max_nonzeros > 0 else 0
+
+    # Variable types
+    var_types = {}
+    for v in variables:
+        vtype = v.get("var_type", "continuous")
+        var_types[vtype] = var_types.get(vtype, 0) + 1
+
+    # Constraint types
+    constr_types = {}
+    for c in constraints:
+        sense = c.get("sense", "<=")
+        constr_types[sense] = constr_types.get(sense, 0) + 1
+
+    return ModelStats(
+        num_variables=num_vars,
+        num_constraints=num_constrs,
+        num_nonzeros=nonzeros,
+        density=round(density, 4),
+        variable_types=var_types,
+        constraint_types=constr_types,
+    )
