@@ -485,3 +485,95 @@ def solve_cutting_stock(
         total_waste=total_waste,
         solve_time_ms=elapsed,
     )
+
+
+def solve_flexible_job_shop(
+    jobs: list[list[dict]],
+    time_limit_seconds: int = 30,
+) -> dict:
+    """
+    Solve Flexible Job Shop - tasks can run on multiple machines.
+
+    Args:
+        jobs: List of jobs. Each job is list of tasks.
+            Each task: {"machines": [(machine_id, duration), ...]}
+        time_limit_seconds: Solver time limit.
+
+    Returns:
+        Dict with status, makespan, and schedule.
+    """
+    import time
+
+    from ortools.sat.python import cp_model
+
+    start_time = time.time()
+    model = cp_model.CpModel()
+
+    # Compute horizon
+    horizon = sum(
+        max(dur for _, dur in task["machines"])
+        for job in jobs for task in job
+    )
+
+    all_tasks = {}
+    machine_intervals = {}
+
+    for job_id, job in enumerate(jobs):
+        for task_id, task in enumerate(job):
+            task_alts = []
+            presences = []
+            for machine, duration in task["machines"]:
+                suffix = f"_{job_id}_{task_id}_{machine}"
+                start = model.new_int_var(0, horizon, f"start{suffix}")
+                end = model.new_int_var(0, horizon, f"end{suffix}")
+                present = model.new_bool_var(f"present{suffix}")
+                interval = model.new_optional_interval_var(start, duration, end, present, f"interval{suffix}")
+                task_alts.append((start, end, interval, machine, duration, present))
+                presences.append(present)
+                machine_intervals.setdefault(machine, []).append(interval)
+            all_tasks[(job_id, task_id)] = task_alts
+            model.add_exactly_one(presences)
+
+    # No overlap on machines
+    for intervals in machine_intervals.values():
+        model.add_no_overlap(intervals)
+
+    # Precedence within jobs
+    for job_id, job in enumerate(jobs):
+        for task_id in range(len(job) - 1):
+            for alt1 in all_tasks[(job_id, task_id)]:
+                for alt2 in all_tasks[(job_id, task_id + 1)]:
+                    model.add(alt2[0] >= alt1[1]).only_enforce_if(alt1[5], alt2[5])
+
+    # Minimize makespan
+    makespan = model.new_int_var(0, horizon, "makespan")
+    last_ends = []
+    for job_id, job in enumerate(jobs):
+        for alt in all_tasks[(job_id, len(job) - 1)]:
+            last_ends.append(alt[1])
+    model.add_max_equality(makespan, last_ends)
+    model.minimize(makespan)
+
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = time_limit_seconds
+    status = solver.solve(model)
+    elapsed = (time.time() - start_time) * 1000
+
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return {"status": "infeasible", "solve_time_ms": elapsed}
+
+    schedule = []
+    for (job_id, task_id), alts in all_tasks.items():
+        for start, end, interval, machine, duration, present in alts:
+            if solver.value(present):
+                schedule.append({
+                    "job": job_id, "task": task_id, "machine": machine,
+                    "start": solver.value(start), "end": solver.value(end),
+                })
+
+    return {
+        "status": "optimal" if status == cp_model.OPTIMAL else "feasible",
+        "makespan": solver.value(makespan),
+        "schedule": sorted(schedule, key=lambda x: (x["job"], x["task"])),
+        "solve_time_ms": elapsed,
+    }

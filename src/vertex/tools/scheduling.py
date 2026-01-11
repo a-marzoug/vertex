@@ -199,3 +199,22 @@ def compute_cutting_stock(
         Cutting patterns and total waste.
     """
     return solve_cutting_stock(items, lengths, demands, stock_length, max_stock, time_limit_seconds)
+
+
+def compute_flexible_job_shop(
+    jobs: list[list[dict]],
+    time_limit_seconds: int = 30,
+) -> dict:
+    """
+    Solve Flexible Job Shop - tasks can run on alternative machines.
+
+    Args:
+        jobs: List of jobs. Each job is list of tasks.
+            Each task: {"machines": [(machine_id, duration), ...]}
+        time_limit_seconds: Solver time limit.
+
+    Returns:
+        Dict with makespan and machine assignments.
+    """
+    from vertex.solvers.scheduling import solve_flexible_job_shop
+    return solve_flexible_job_shop(jobs, time_limit_seconds)

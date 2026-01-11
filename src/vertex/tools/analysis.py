@@ -306,3 +306,107 @@ def get_model_stats(
         variable_types=var_types,
         constraint_types=constr_types,
     )
+
+
+def find_alternative_solutions(
+    variables: list[dict],
+    constraints: list[dict],
+    objective_coefficients: dict[str, float],
+    objective_sense: str = "maximize",
+    max_solutions: int = 5,
+    gap_tolerance: float = 0.01,
+) -> list[dict]:
+    """
+    Find multiple near-optimal solutions.
+
+    Args:
+        variables: Variable definitions.
+        constraints: Constraint definitions.
+        objective_coefficients: Objective function coefficients.
+        objective_sense: "maximize" or "minimize".
+        max_solutions: Maximum solutions to return.
+        gap_tolerance: Accept solutions within this fraction of optimal.
+
+    Returns:
+        List of solutions with objective values and variable values.
+    """
+    from ortools.linear_solver import pywraplp
+
+    solutions = []
+
+    # First solve to get optimal
+    solver = pywraplp.Solver.CreateSolver("SCIP")
+    if not solver:
+        return solutions
+
+    var_map = {}
+    for v in variables:
+        lb = v.get("lower_bound", 0)
+        ub = v.get("upper_bound", float("inf"))
+        vtype = v.get("var_type", "continuous")
+        if vtype == "binary":
+            var_map[v["name"]] = solver.BoolVar(v["name"])
+        elif vtype == "integer":
+            var_map[v["name"]] = solver.IntVar(int(lb), int(ub), v["name"])
+        else:
+            var_map[v["name"]] = solver.NumVar(lb, ub, v["name"])
+
+    for c in constraints:
+        expr = sum(coef * var_map[name] for name, coef in c["coefficients"].items())
+        sense = c.get("sense", "<=")
+        if sense == "<=":
+            solver.Add(expr <= c["rhs"])
+        elif sense == ">=":
+            solver.Add(expr >= c["rhs"])
+        else:
+            solver.Add(expr == c["rhs"])
+
+    obj_expr = sum(coef * var_map[name] for name, coef in objective_coefficients.items())
+    if objective_sense == "maximize":
+        solver.Maximize(obj_expr)
+    else:
+        solver.Minimize(obj_expr)
+
+    status = solver.Solve()
+    if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
+        return solutions
+
+    optimal_obj = solver.Objective().Value()
+    solutions.append({
+        "objective": round(optimal_obj, 6),
+        "variables": {name: round(var.solution_value(), 6) for name, var in var_map.items()},
+        "is_optimal": True,
+    })
+
+    # Add constraint to exclude current solution and find alternatives
+    for _ in range(max_solutions - 1):
+        # Add cut to exclude previous solutions (for integer/binary vars)
+        int_vars = [name for name, var in var_map.items() if var.integer()]
+        if not int_vars:
+            break
+
+        # Simple exclusion: at least one variable must differ
+        prev_sol = solutions[-1]["variables"]
+        cut_expr = sum(
+            var_map[name] if prev_sol[name] < 0.5 else (1 - var_map[name])
+            for name in int_vars if name in prev_sol
+        )
+        solver.Add(cut_expr >= 1)
+
+        # Add optimality gap constraint
+        if objective_sense == "maximize":
+            solver.Add(obj_expr >= optimal_obj * (1 - gap_tolerance))
+        else:
+            solver.Add(obj_expr <= optimal_obj * (1 + gap_tolerance))
+
+        status = solver.Solve()
+        if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
+            break
+
+        solutions.append({
+            "objective": round(solver.Objective().Value(), 6),
+            "variables": {name: round(var.solution_value(), 6) for name, var in var_map.items()},
+            "is_optimal": False,
+        })
+
+    return solutions

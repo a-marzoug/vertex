@@ -15,6 +15,7 @@ from vertex.tools.analysis import (
     WhatIfResult,
     analyze_what_if as _analyze_what_if,
     diagnose_infeasibility as _diagnose_infeasibility,
+    find_alternative_solutions as _find_alternatives,
     get_model_stats as _get_model_stats,
     solve_rcpsp as _solve_rcpsp,
 )
@@ -23,6 +24,7 @@ from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
 from vertex.tools.multiobjective import MultiObjectiveResult, solve_multi_objective
 from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_mst, compute_multi_commodity_flow, compute_shortest_path
+from vertex.tools.scheduling import compute_flexible_job_shop
 from vertex.tools.scheduling import (
     compute_bin_packing,
     compute_cutting_stock,
@@ -188,6 +190,29 @@ def solve_n_queens_puzzle(n: int) -> NQueensResult:
         n: Board size and number of queens.
     """
     return solve_n_queens(n)
+
+
+@mcp.tool()
+def find_alternative_optimal_solutions(
+    variables: list[dict],
+    constraints: list[dict],
+    objective_coefficients: dict[str, float],
+    objective_sense: str = "maximize",
+    max_solutions: int = 5,
+    gap_tolerance: float = 0.01,
+) -> list[dict]:
+    """
+    Find multiple near-optimal solutions for MIP problems.
+
+    Args:
+        variables: Variable definitions with var_type (binary/integer).
+        constraints: Constraint definitions.
+        objective_coefficients: Objective function coefficients.
+        objective_sense: "maximize" or "minimize".
+        max_solutions: Maximum solutions to return.
+        gap_tolerance: Accept solutions within this fraction of optimal.
+    """
+    return _find_alternatives(variables, constraints, objective_coefficients, objective_sense, max_solutions, gap_tolerance)
 
 
 @mcp.tool()
@@ -563,6 +588,28 @@ def solve_rcpsp(
         time_limit_seconds: Solver time limit.
     """
     return _solve_rcpsp(tasks, resources, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_flexible_job_shop(
+    jobs: list[list[dict]],
+    time_limit_seconds: int = 30,
+) -> dict:
+    """
+    Solve Flexible Job Shop - tasks can run on alternative machines.
+
+    Args:
+        jobs: List of jobs. Each job is list of tasks.
+            Each task: {"machines": [(machine_id, duration), ...]}
+        time_limit_seconds: Solver time limit.
+
+    Example:
+        jobs = [
+            [{"machines": [(0, 3), (1, 2)]}, {"machines": [(1, 4)]}],  # Job 0
+            [{"machines": [(0, 2), (1, 3)]}, {"machines": [(0, 3)]}],  # Job 1
+        ]
+    """
+    return compute_flexible_job_shop(jobs, time_limit_seconds)
 
 
 @mcp.tool()
