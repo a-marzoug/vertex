@@ -9,6 +9,13 @@ from vertex.models.network import MaxFlowResult, MinCostFlowResult, MSTResult, M
 from vertex.models.scheduling import BinPackingResult, CuttingStockResult, GraphColoringResult, JobShopResult, SetCoverResult, TSPResult, VRPResult
 from vertex.prompts.linear import formulate_lp, interpret_solution
 from vertex.prompts.mip import formulate_mip
+from vertex.tools.analysis import (
+    InfeasibilityResult,
+    WhatIfResult,
+    analyze_what_if as _analyze_what_if,
+    diagnose_infeasibility as _diagnose_infeasibility,
+    solve_rcpsp as _solve_rcpsp,
+)
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
 from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_mst, compute_multi_commodity_flow, compute_shortest_path
@@ -72,6 +79,48 @@ def analyze_lp_sensitivity(
     (how much variable coefficients must improve to enter the solution).
     """
     return analyze_sensitivity(variables, constraints, objective_coefficients, objective_sense)
+
+
+@mcp.tool()
+def analyze_what_if_scenario(
+    variables: list[dict],
+    constraints: list[dict],
+    objective_coefficients: dict[str, float],
+    parameter_name: str,
+    parameter_values: list[float],
+    objective_sense: str = "maximize",
+) -> WhatIfResult:
+    """
+    Perform what-if analysis by varying a constraint RHS value.
+
+    Args:
+        variables: Variable definitions.
+        constraints: Constraint definitions (one must have name=parameter_name).
+        objective_coefficients: Objective function coefficients.
+        parameter_name: Name of constraint to vary.
+        parameter_values: Values to test for the constraint RHS.
+        objective_sense: "maximize" or "minimize".
+    """
+    return _analyze_what_if(variables, constraints, objective_coefficients, parameter_name, parameter_values, objective_sense)
+
+
+@mcp.tool()
+def diagnose_infeasibility(
+    variables: list[dict],
+    constraints: list[dict],
+    objective_coefficients: dict[str, float],
+    objective_sense: str = "maximize",
+) -> InfeasibilityResult:
+    """
+    Diagnose why a problem is infeasible by finding conflicting constraints.
+
+    Args:
+        variables: Variable definitions.
+        constraints: Constraint definitions.
+        objective_coefficients: Objective function coefficients.
+        objective_sense: "maximize" or "minimize".
+    """
+    return _diagnose_infeasibility(variables, constraints, objective_coefficients, objective_sense)
 
 
 @mcp.tool()
@@ -354,6 +403,25 @@ def solve_job_shop(
         ]
     """
     return compute_job_shop(jobs, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_rcpsp(
+    tasks: list[dict],
+    resources: dict[str, int],
+    time_limit_seconds: int = 30,
+) -> dict:
+    """
+    Solve Resource-Constrained Project Scheduling Problem.
+
+    Args:
+        tasks: List of tasks with 'name', 'duration', 'resources' (dict), 'predecessors' (list).
+            Example: {"name": "A", "duration": 3, "resources": {"workers": 2}, "predecessors": []}
+        resources: Available capacity per resource type.
+            Example: {"workers": 4, "machines": 2}
+        time_limit_seconds: Solver time limit.
+    """
+    return _solve_rcpsp(tasks, resources, time_limit_seconds)
 
 
 @mcp.tool()

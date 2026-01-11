@@ -1,5 +1,12 @@
 """MCP tools for optimization."""
 
+from vertex.tools.analysis import (
+    InfeasibilityResult,
+    WhatIfResult,
+    analyze_what_if,
+    diagnose_infeasibility,
+    solve_rcpsp,
+)
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
 from vertex.tools.network import (
@@ -23,6 +30,7 @@ from vertex.tools.sensitivity import SensitivityReport, analyze_sensitivity
 
 __all__ = [
     "analyze_sensitivity",
+    "analyze_what_if",
     "compute_bin_packing",
     "compute_cutting_stock",
     "compute_graph_coloring",
@@ -36,7 +44,11 @@ __all__ = [
     "compute_tsp",
     "compute_vrp",
     "compute_vrp_tw",
+    "diagnose_infeasibility",
+    "InfeasibilityResult",
     "SensitivityReport",
     "solve_lp",
     "solve_mip",
+    "solve_rcpsp",
+    "WhatIfResult",
 ]
