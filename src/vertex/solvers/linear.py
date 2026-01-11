@@ -27,18 +27,21 @@ class LinearSolver:
                 var.name,
             )
 
-        # Add constraints
-        for constraint in problem.constraints:
+        # Add constraints (keep references for dual values)
+        constraint_map: dict[str, pywraplp.Constraint] = {}
+        for i, constraint in enumerate(problem.constraints):
             expr = sum(
                 coef * var_map[name] for name, coef in constraint.coefficients.items()
             )
+            name = constraint.name or f"c{i}"
             match constraint.sense:
                 case ConstraintSense.LEQ:
-                    solver.Add(expr <= constraint.rhs)
+                    ct = solver.Add(expr <= constraint.rhs)
                 case ConstraintSense.GEQ:
-                    solver.Add(expr >= constraint.rhs)
+                    ct = solver.Add(expr >= constraint.rhs)
                 case ConstraintSense.EQ:
-                    solver.Add(expr == constraint.rhs)
+                    ct = solver.Add(expr == constraint.rhs)
+            constraint_map[name] = ct
 
         # Set objective
         obj_expr = sum(
@@ -69,6 +72,14 @@ class LinearSolver:
                 objective_value=round(solver.Objective().Value(), 6),
                 variable_values={
                     name: round(var.solution_value(), 6)
+                    for name, var in var_map.items()
+                },
+                shadow_prices={
+                    name: round(ct.dual_value(), 6)
+                    for name, ct in constraint_map.items()
+                },
+                reduced_costs={
+                    name: round(var.reduced_cost(), 6)
                     for name, var in var_map.items()
                 },
                 solve_time_ms=solver.wall_time(),

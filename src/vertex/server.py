@@ -11,6 +11,7 @@ from vertex.prompts.mip import formulate_mip
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
 from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_shortest_path
+from vertex.tools.sensitivity import SensitivityReport, analyze_sensitivity
 from vertex.tools.templates.assignment import AssignmentResult
 from vertex.tools.templates.assignment import optimize_assignment as _optimize_assignment
 from vertex.tools.templates.diet import DietResult
@@ -42,6 +43,22 @@ def solve_linear_program(
 ) -> LPSolution:
     """Solve a Linear Programming problem with continuous variables."""
     return solve_lp(variables, constraints, objective_coefficients, objective_sense)
+
+
+@mcp.tool()
+def analyze_lp_sensitivity(
+    variables: list[dict],
+    constraints: list[dict],
+    objective_coefficients: dict[str, float],
+    objective_sense: str = "maximize",
+) -> SensitivityReport:
+    """
+    Analyze LP solution sensitivity to parameter changes.
+
+    Returns shadow prices (marginal value of constraints) and reduced costs
+    (how much variable coefficients must improve to enter the solution).
+    """
+    return analyze_sensitivity(variables, constraints, objective_coefficients, objective_sense)
 
 
 @mcp.tool()

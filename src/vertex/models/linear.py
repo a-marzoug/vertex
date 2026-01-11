@@ -69,6 +69,14 @@ class LPSolution(BaseModel):
         default_factory=dict,
         description="Optimal variable values",
     )
+    shadow_prices: dict[str, float] = Field(
+        default_factory=dict,
+        description="Dual values for constraints (marginal value of relaxing each constraint)",
+    )
+    reduced_costs: dict[str, float] = Field(
+        default_factory=dict,
+        description="Reduced costs for variables (how much coefficient must improve to enter basis)",
+    )
     solve_time_ms: float | None = Field(
         default=None,
         description="Solve time in milliseconds",
