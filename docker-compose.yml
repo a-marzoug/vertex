@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Vertex MCP Server - stdio mode (for Claude Desktop)
+  vertex-stdio:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.stdio
+    image: vertex:stdio
+    container_name: vertex-stdio
+    stdin_open: true
+    tty: true
+    environment:
+      - PYTHONUNBUFFERED=1
+    profiles:
+      - stdio
+
+  # Vertex MCP Server - HTTP mode (for web clients, Kubernetes)
+  vertex-http:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.http
+    image: vertex:http
+    container_name: vertex-http
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/mcp')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    profiles:
+      - http
