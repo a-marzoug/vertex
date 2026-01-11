@@ -5,14 +5,20 @@ from mcp.server.fastmcp import FastMCP
 from vertex.config import DEFAULT_HOST, DEFAULT_PORT, SERVER_DESCRIPTION, SERVER_NAME
 from vertex.models.linear import LPSolution
 from vertex.models.mip import MIPSolution
+from vertex.models.network import MaxFlowResult, MinCostFlowResult, ShortestPathResult
 from vertex.prompts.linear import formulate_lp, interpret_solution
 from vertex.prompts.mip import formulate_mip
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
-from vertex.tools.templates.assignment import AssignmentResult, optimize_assignment
-from vertex.tools.templates.diet import DietResult, optimize_diet
-from vertex.tools.templates.facility import FacilityResult, optimize_facility_location
-from vertex.tools.templates.knapsack import KnapsackResult, optimize_knapsack
+from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_shortest_path
+from vertex.tools.templates.assignment import AssignmentResult
+from vertex.tools.templates.assignment import optimize_assignment as _optimize_assignment
+from vertex.tools.templates.diet import DietResult
+from vertex.tools.templates.diet import optimize_diet as _optimize_diet
+from vertex.tools.templates.facility import FacilityResult
+from vertex.tools.templates.facility import optimize_facility_location as _optimize_facility
+from vertex.tools.templates.knapsack import KnapsackResult
+from vertex.tools.templates.knapsack import optimize_knapsack as _optimize_knapsack
 from vertex.tools.templates.portfolio import PortfolioResult, optimize_portfolio
 from vertex.tools.templates.production import ProductionResult, optimize_production
 
@@ -83,71 +89,98 @@ def solve_mixed_integer_program(
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
 ) -> MIPSolution:
-    """
-    Solve a Mixed-Integer Programming problem.
-
-    Args:
-        variables: List with 'name', 'var_type' (continuous/integer/binary), optional bounds.
-        constraints: List with 'coefficients', 'sense' (<=, >=, =), 'rhs'.
-        objective_coefficients: Variable coefficients in objective.
-        objective_sense: "maximize" or "minimize".
-    """
+    """Solve a Mixed-Integer Programming problem with integer/binary variables."""
     return solve_mip(variables, constraints, objective_coefficients, objective_sense)
 
 
 @mcp.tool()
-def optimize_assignment(
+def optimize_worker_assignment(
     workers: list[str],
     tasks: list[str],
     costs: dict[str, dict[str, float]],
 ) -> AssignmentResult:
-    """
-    Assign workers to tasks minimizing total cost. Each worker gets one task.
-
-    Args:
-        workers: Worker names. Example: ["Alice", "Bob"]
-        tasks: Task names. Example: ["Task1", "Task2"]
-        costs: Cost matrix. Example: {"Alice": {"Task1": 10, "Task2": 15}}
-    """
-    return optimize_assignment(workers, tasks, costs)
+    """Assign workers to tasks minimizing total cost. Each worker gets one task."""
+    return _optimize_assignment(workers, tasks, costs)
 
 
 @mcp.tool()
-def optimize_knapsack(
+def optimize_knapsack_selection(
     items: list[str],
     values: dict[str, float],
     weights: dict[str, float],
     capacity: float,
 ) -> KnapsackResult:
-    """
-    Select items to maximize value within weight capacity (0/1 knapsack).
-
-    Args:
-        items: Item names. Example: ["laptop", "camera"]
-        values: Item values. Example: {"laptop": 1000, "camera": 500}
-        weights: Item weights. Example: {"laptop": 3, "camera": 1}
-        capacity: Max total weight.
-    """
-    return optimize_knapsack(items, values, weights, capacity)
+    """Select items to maximize value within weight capacity (0/1 knapsack)."""
+    return _optimize_knapsack(items, values, weights, capacity)
 
 
 @mcp.tool()
-def optimize_facility_location(
+def optimize_facility_locations(
     facilities: list[str],
     customers: list[str],
     fixed_costs: dict[str, float],
     transport_costs: dict[str, dict[str, float]],
 ) -> FacilityResult:
+    """Decide which facilities to open and assign customers to minimize cost."""
+    return _optimize_facility(facilities, customers, fixed_costs, transport_costs)
+
+
+# Network Tools
+@mcp.tool()
+def find_max_flow(
+    nodes: list[str],
+    arcs: list[dict],
+    source: str,
+    sink: str,
+) -> MaxFlowResult:
     """
-    Decide which facilities to open and assign customers to minimize total cost.
+    Find maximum flow from source to sink in a network.
 
     Args:
-        facilities: Potential locations. Example: ["NYC", "LA"]
-        customers: Customer locations. Example: ["Boston", "Seattle"]
-        fixed_costs: Cost to open facility. Example: {"NYC": 1000}
-        transport_costs: Shipping cost. Example: {"NYC": {"Boston": 50}}
+        nodes: Node names. Example: ["S", "A", "B", "T"]
+        arcs: Arcs with 'source', 'target', 'capacity'.
+            Example: [{"source": "S", "target": "A", "capacity": 10}]
+        source: Source node.
+        sink: Sink node.
     """
-    return optimize_facility_location(facilities, customers, fixed_costs, transport_costs)
+    return compute_max_flow(nodes, arcs, source, sink)
+
+
+@mcp.tool()
+def find_min_cost_flow(
+    nodes: list[str],
+    arcs: list[dict],
+    supplies: dict[str, int],
+) -> MinCostFlowResult:
+    """
+    Find minimum cost flow satisfying supplies and demands.
+
+    Args:
+        nodes: Node names.
+        arcs: Arcs with 'source', 'target', 'capacity', 'cost'.
+        supplies: Node supplies (positive) and demands (negative).
+            Example: {"factory": 100, "warehouse": -100}
+    """
+    return compute_min_cost_flow(nodes, arcs, supplies)
+
+
+@mcp.tool()
+def find_shortest_path(
+    nodes: list[str],
+    arcs: list[dict],
+    source: str,
+    target: str,
+) -> ShortestPathResult:
+    """
+    Find shortest path between two nodes.
+
+    Args:
+        nodes: Node names.
+        arcs: Arcs with 'source', 'target', 'cost'.
+        source: Start node.
+        target: End node.
+    """
+    return compute_shortest_path(nodes, arcs, source, target)
 
 
 # Prompts

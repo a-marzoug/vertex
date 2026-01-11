@@ -14,16 +14,26 @@ from vertex.models.mip import (
     MIPSolution,
     MIPVariable,
 )
+from vertex.models.network import (
+    Arc,
+    MaxFlowResult,
+    MinCostFlowResult,
+    ShortestPathResult,
+)
 
 __all__ = [
+    "Arc",
     "Constraint",
     "LPProblem",
     "LPSolution",
+    "MaxFlowResult",
+    "MinCostFlowResult",
     "MIPConstraint",
     "MIPObjective",
     "MIPProblem",
     "MIPSolution",
     "MIPVariable",
     "Objective",
+    "ShortestPathResult",
     "Variable",
 ]
