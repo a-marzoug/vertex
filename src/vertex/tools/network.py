@@ -119,3 +119,32 @@ def compute_multi_commodity_flow(
         MultiCommodityFlowResult with flows per commodity.
     """
     return solve_multi_commodity_flow(nodes, arcs, commodities, time_limit_seconds)
+
+
+def compute_transshipment(
+    sources: list[str],
+    transshipment_nodes: list[str],
+    destinations: list[str],
+    supplies: dict[str, int],
+    demands: dict[str, int],
+    costs: dict[str, dict[str, float]],
+    capacities: dict[str, dict[str, float]] | None = None,
+) -> "MinCostFlowResult":
+    """
+    Solve Transshipment Problem - ship goods through intermediate nodes.
+
+    Args:
+        sources: Source node names (e.g., factories).
+        transshipment_nodes: Intermediate nodes (e.g., warehouses).
+        destinations: Destination nodes (e.g., customers).
+        supplies: Supply at each source.
+        demands: Demand at each destination.
+        costs: costs[from][to] = unit shipping cost.
+        capacities: Optional capacities[from][to] = max flow.
+
+    Returns:
+        MinCostFlowResult with optimal flows and total cost.
+    """
+    from vertex.solvers.network import solve_transshipment
+
+    return solve_transshipment(sources, transshipment_nodes, destinations, supplies, demands, costs, capacities)

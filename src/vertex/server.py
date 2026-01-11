@@ -36,11 +36,13 @@ from vertex.tools.templates.diet import DietResult
 from vertex.tools.templates.diet import optimize_diet as _optimize_diet
 from vertex.tools.templates.facility import FacilityResult
 from vertex.tools.templates.facility import optimize_facility_location as _optimize_facility
-from vertex.tools.templates.inventory import EOQResult, MultiItemInventoryResult, optimize_eoq, optimize_multi_item_inventory
+from vertex.tools.templates.healthcare import ResourceAllocationResult, optimize_resource_allocation
+from vertex.tools.templates.inventory import EOQResult, optimize_eoq
 from vertex.tools.templates.knapsack import KnapsackResult
 from vertex.tools.templates.knapsack import optimize_knapsack as _optimize_knapsack
 from vertex.tools.templates.portfolio import PortfolioResult, optimize_portfolio
 from vertex.tools.templates.production import ProductionResult, optimize_production
+from vertex.tools.templates.supplychain import SupplyChainResult, optimize_supply_chain
 from vertex.tools.templates.workforce import WorkforceResult, optimize_workforce_schedule
 
 mcp = FastMCP(
@@ -250,6 +252,54 @@ def optimize_workforce(
     return optimize_workforce_schedule(workers, days, shifts, requirements, costs, max_shifts_per_worker, time_limit_seconds)
 
 
+@mcp.tool()
+def optimize_healthcare_resources(
+    resources: list[str],
+    locations: list[str],
+    availability: dict[str, float],
+    demands: dict[str, dict[str, float]],
+    effectiveness: dict[str, dict[str, float]] | None = None,
+    min_coverage: dict[str, float] | None = None,
+) -> ResourceAllocationResult:
+    """
+    Allocate healthcare resources across locations to maximize coverage.
+
+    Args:
+        resources: Resource types (e.g., ["doctors", "nurses", "beds"]).
+        locations: Location names (e.g., ["hospital_A", "clinic_B"]).
+        availability: Total available units per resource.
+        demands: demands[location][resource] = units needed.
+        effectiveness: Optional effectiveness multiplier per location/resource.
+        min_coverage: Optional minimum coverage ratio per location.
+    """
+    return optimize_resource_allocation(resources, locations, availability, demands, effectiveness, min_coverage)
+
+
+@mcp.tool()
+def optimize_supply_chain_network(
+    facilities: list[str],
+    customers: list[str],
+    fixed_costs: dict[str, float],
+    capacities: dict[str, float],
+    demands: dict[str, float],
+    transport_costs: dict[str, dict[str, float]],
+    max_facilities: int | None = None,
+) -> SupplyChainResult:
+    """
+    Design supply chain network - decide which facilities to open and how to serve customers.
+
+    Args:
+        facilities: Potential facility locations.
+        customers: Customer locations.
+        fixed_costs: Fixed cost to open each facility.
+        capacities: Capacity of each facility.
+        demands: Demand at each customer.
+        transport_costs: transport_costs[facility][customer] = unit cost.
+        max_facilities: Optional limit on facilities to open.
+    """
+    return optimize_supply_chain(facilities, customers, fixed_costs, capacities, demands, transport_costs, max_facilities)
+
+
 # Network Tools
 @mcp.tool()
 def find_max_flow(
@@ -340,6 +390,32 @@ def find_multi_commodity_flow(
         time_limit_seconds: Solver time limit.
     """
     return compute_multi_commodity_flow(nodes, arcs, commodities, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_transshipment(
+    sources: list[str],
+    transshipment_nodes: list[str],
+    destinations: list[str],
+    supplies: dict[str, int],
+    demands: dict[str, int],
+    costs: dict[str, dict[str, float]],
+    capacities: dict[str, dict[str, float]] | None = None,
+) -> MinCostFlowResult:
+    """
+    Solve Transshipment Problem - ship goods through intermediate nodes.
+
+    Args:
+        sources: Source nodes (e.g., factories).
+        transshipment_nodes: Intermediate nodes (e.g., warehouses).
+        destinations: Destination nodes (e.g., customers).
+        supplies: Supply at each source.
+        demands: Demand at each destination.
+        costs: costs[from][to] = unit shipping cost.
+        capacities: Optional capacities[from][to] = max flow.
+    """
+    from vertex.tools.network import compute_transshipment
+    return compute_transshipment(sources, transshipment_nodes, destinations, supplies, demands, costs, capacities)
 
 
 # Scheduling & Routing Tools

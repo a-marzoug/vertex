@@ -345,3 +345,50 @@ def solve_multi_commodity_flow(
         commodity_flows=commodity_flows,
         solve_time_ms=solve_time,
     )
+
+
+def solve_transshipment(
+    sources: list[str],
+    transshipment_nodes: list[str],
+    destinations: list[str],
+    supplies: dict[str, int],
+    demands: dict[str, int],
+    costs: dict[str, dict[str, float]],
+    capacities: dict[str, dict[str, float]] | None = None,
+) -> "MinCostFlowResult":
+    """
+    Solve Transshipment Problem - ship goods through intermediate nodes.
+
+    Args:
+        sources: Source node names.
+        transshipment_nodes: Intermediate node names.
+        destinations: Destination node names.
+        supplies: Supply at each source.
+        demands: Demand at each destination.
+        costs: costs[from][to] = unit shipping cost.
+        capacities: Optional capacities[from][to] = max flow.
+
+    Returns:
+        MinCostFlowResult with flows and total cost.
+    """
+    from vertex.models.network import MinCostFlowResult
+
+    all_nodes = sources + transshipment_nodes + destinations
+
+    # Build arcs from cost matrix
+    arcs = []
+    for src, dests in costs.items():
+        for dst, cost in dests.items():
+            cap = capacities.get(src, {}).get(dst, 10000) if capacities else 10000
+            arcs.append({"source": src, "target": dst, "capacity": int(cap), "cost": int(cost)})
+
+    # Build supplies dict (sources positive, destinations negative)
+    node_supplies = {}
+    for s in sources:
+        node_supplies[s] = supplies.get(s, 0)
+    for t in transshipment_nodes:
+        node_supplies[t] = 0
+    for d in destinations:
+        node_supplies[d] = -demands.get(d, 0)
+
+    return solve_min_cost_flow(all_nodes, arcs, node_supplies)
