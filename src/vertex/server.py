@@ -6,11 +6,13 @@ from vertex.config import DEFAULT_HOST, DEFAULT_PORT, SERVER_DESCRIPTION, SERVER
 from vertex.models.linear import LPSolution
 from vertex.models.mip import MIPSolution
 from vertex.models.network import MaxFlowResult, MinCostFlowResult, ShortestPathResult
+from vertex.models.scheduling import JobShopResult, TSPResult, VRPResult
 from vertex.prompts.linear import formulate_lp, interpret_solution
 from vertex.prompts.mip import formulate_mip
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
 from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_shortest_path
+from vertex.tools.scheduling import compute_job_shop, compute_tsp, compute_vrp
 from vertex.tools.sensitivity import SensitivityReport, analyze_sensitivity
 from vertex.tools.templates.assignment import AssignmentResult
 from vertex.tools.templates.assignment import optimize_assignment as _optimize_assignment
@@ -198,6 +200,69 @@ def find_shortest_path(
         target: End node.
     """
     return compute_shortest_path(nodes, arcs, source, target)
+
+
+# Scheduling & Routing Tools
+@mcp.tool()
+def solve_tsp(
+    locations: list[str],
+    distance_matrix: list[list[float]],
+    time_limit_seconds: int = 30,
+) -> TSPResult:
+    """
+    Solve Traveling Salesman Problem - find shortest tour visiting all locations.
+
+    Args:
+        locations: Location names. First location is start/end point.
+        distance_matrix: distances[i][j] = distance from location i to j.
+        time_limit_seconds: Solver time limit.
+    """
+    return compute_tsp(locations, distance_matrix, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_vrp(
+    locations: list[str],
+    distance_matrix: list[list[float]],
+    demands: list[int],
+    vehicle_capacities: list[int],
+    depot: int = 0,
+    time_limit_seconds: int = 30,
+) -> VRPResult:
+    """
+    Solve Capacitated Vehicle Routing Problem.
+
+    Args:
+        locations: Location names. Index 0 is typically the depot.
+        distance_matrix: distances[i][j] = distance from location i to j.
+        demands: Demand at each location (depot demand should be 0).
+        vehicle_capacities: Capacity of each vehicle.
+        depot: Index of depot location.
+        time_limit_seconds: Solver time limit.
+    """
+    return compute_vrp(locations, distance_matrix, demands, vehicle_capacities, depot, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_job_shop(
+    jobs: list[list[dict]],
+    time_limit_seconds: int = 30,
+) -> JobShopResult:
+    """
+    Solve Job Shop Scheduling - schedule jobs on machines minimizing makespan.
+
+    Args:
+        jobs: List of jobs. Each job is list of tasks: {"machine": int, "duration": int}.
+            Tasks within a job must be processed in order.
+        time_limit_seconds: Solver time limit.
+
+    Example:
+        jobs = [
+            [{"machine": 0, "duration": 3}, {"machine": 1, "duration": 2}],
+            [{"machine": 1, "duration": 4}, {"machine": 0, "duration": 2}],
+        ]
+    """
+    return compute_job_shop(jobs, time_limit_seconds)
 
 
 # Prompts
