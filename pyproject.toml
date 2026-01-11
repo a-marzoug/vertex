@@ -1,0 +1,21 @@
+[project]
+name = "vertex"
+version = "0.1.0"
+description = "Operations Research MCP Server for decision makers"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mcp[cli]>=1.25.0",
+    "ortools>=9.14.6206",
+    "pydantic>=2.12.5",
+]
+
+[project.scripts]
+vertex = "vertex.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vertex"]
