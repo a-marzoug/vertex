@@ -21,8 +21,14 @@ from vertex.models.network import (
     ShortestPathResult,
 )
 from vertex.models.scheduling import (
+    BinAssignment,
+    BinPackingResult,
+    CuttingPattern,
+    CuttingStockResult,
+    GraphColoringResult,
     JobShopResult,
     ScheduledTask,
+    SetCoverResult,
     TSPResult,
     VRPResult,
     VRPRoute,
@@ -30,7 +36,12 @@ from vertex.models.scheduling import (
 
 __all__ = [
     "Arc",
+    "BinAssignment",
+    "BinPackingResult",
     "Constraint",
+    "CuttingPattern",
+    "CuttingStockResult",
+    "GraphColoringResult",
     "JobShopResult",
     "LPProblem",
     "LPSolution",
@@ -43,6 +54,7 @@ __all__ = [
     "MIPVariable",
     "Objective",
     "ScheduledTask",
+    "SetCoverResult",
     "ShortestPathResult",
     "TSPResult",
     "Variable",

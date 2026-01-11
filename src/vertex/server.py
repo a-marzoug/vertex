@@ -6,13 +6,22 @@ from vertex.config import DEFAULT_HOST, DEFAULT_PORT, SERVER_DESCRIPTION, SERVER
 from vertex.models.linear import LPSolution
 from vertex.models.mip import MIPSolution
 from vertex.models.network import MaxFlowResult, MinCostFlowResult, ShortestPathResult
-from vertex.models.scheduling import JobShopResult, TSPResult, VRPResult
+from vertex.models.scheduling import BinPackingResult, CuttingStockResult, GraphColoringResult, JobShopResult, SetCoverResult, TSPResult, VRPResult
 from vertex.prompts.linear import formulate_lp, interpret_solution
 from vertex.prompts.mip import formulate_mip
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
 from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_shortest_path
-from vertex.tools.scheduling import compute_job_shop, compute_tsp, compute_vrp
+from vertex.tools.scheduling import (
+    compute_bin_packing,
+    compute_cutting_stock,
+    compute_graph_coloring,
+    compute_job_shop,
+    compute_set_cover,
+    compute_tsp,
+    compute_vrp,
+    compute_vrp_tw,
+)
 from vertex.tools.sensitivity import SensitivityReport, analyze_sensitivity
 from vertex.tools.templates.assignment import AssignmentResult
 from vertex.tools.templates.assignment import optimize_assignment as _optimize_assignment
@@ -263,6 +272,113 @@ def solve_job_shop(
         ]
     """
     return compute_job_shop(jobs, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_vrp_time_windows(
+    locations: list[str],
+    time_matrix: list[list[int]],
+    time_windows: list[tuple[int, int]],
+    demands: list[int],
+    vehicle_capacities: list[int],
+    depot: int = 0,
+    time_limit_seconds: int = 30,
+) -> VRPResult:
+    """
+    Solve VRP with Time Windows - vehicles must arrive within time windows.
+
+    Args:
+        locations: Location names.
+        time_matrix: time_matrix[i][j] = travel time from i to j.
+        time_windows: (earliest, latest) arrival time for each location.
+        demands: Demand at each location.
+        vehicle_capacities: Capacity of each vehicle.
+        depot: Index of depot location.
+        time_limit_seconds: Solver time limit.
+    """
+    return compute_vrp_tw(locations, time_matrix, time_windows, demands, vehicle_capacities, depot, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_bin_packing(
+    items: list[str],
+    weights: dict[str, float],
+    bin_capacity: float,
+    max_bins: int | None = None,
+    time_limit_seconds: int = 30,
+) -> BinPackingResult:
+    """
+    Solve Bin Packing - pack items into minimum number of bins.
+
+    Args:
+        items: Item names.
+        weights: Weight of each item.
+        bin_capacity: Capacity of each bin.
+        max_bins: Maximum bins available.
+        time_limit_seconds: Solver time limit.
+    """
+    return compute_bin_packing(items, weights, bin_capacity, max_bins, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_set_cover(
+    universe: list[str],
+    sets: dict[str, list[str]],
+    costs: dict[str, float],
+    time_limit_seconds: int = 30,
+) -> SetCoverResult:
+    """
+    Solve Set Covering - select minimum cost sets to cover all elements.
+
+    Args:
+        universe: Elements that must be covered.
+        sets: Available sets mapping to elements they cover.
+        costs: Cost of each set.
+        time_limit_seconds: Solver time limit.
+    """
+    return compute_set_cover(universe, sets, costs, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_graph_coloring(
+    nodes: list[str],
+    edges: list[tuple[str, str]],
+    max_colors: int | None = None,
+    time_limit_seconds: int = 30,
+) -> GraphColoringResult:
+    """
+    Solve Graph Coloring - assign colors so adjacent nodes differ.
+
+    Args:
+        nodes: Node names.
+        edges: List of (node1, node2) edges.
+        max_colors: Maximum colors available.
+        time_limit_seconds: Solver time limit.
+    """
+    return compute_graph_coloring(nodes, edges, max_colors, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_cutting_stock(
+    items: list[str],
+    lengths: dict[str, int],
+    demands: dict[str, int],
+    stock_length: int,
+    max_stock: int | None = None,
+    time_limit_seconds: int = 30,
+) -> CuttingStockResult:
+    """
+    Solve Cutting Stock - cut items from stock minimizing waste.
+
+    Args:
+        items: Item names.
+        lengths: Length of each item type.
+        demands: Number of each item needed.
+        stock_length: Length of each stock piece.
+        max_stock: Maximum stock pieces available.
+        time_limit_seconds: Solver time limit.
+    """
+    return compute_cutting_stock(items, lengths, demands, stock_length, max_stock, time_limit_seconds)
 
 
 # Prompts
