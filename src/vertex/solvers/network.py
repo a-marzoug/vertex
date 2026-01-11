@@ -193,3 +193,155 @@ def solve_shortest_path(
         path=path,
         solve_time_ms=solve_time,
     )
+
+
+def solve_mst(
+    nodes: list[str],
+    edges: list[dict],
+) -> "MSTResult":
+    """
+    Find Minimum Spanning Tree using Kruskal's algorithm.
+
+    Args:
+        nodes: List of node names.
+        edges: List of edges with 'source', 'target', 'weight'.
+
+    Returns:
+        MSTResult with total_weight and edges.
+    """
+    from vertex.models.network import MSTEdge, MSTResult
+
+    start_time = time.time()
+
+    # Union-Find
+    parent = {n: n for n in nodes}
+    rank = {n: 0 for n in nodes}
+
+    def find(x):
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+
+    def union(x, y):
+        px, py = find(x), find(y)
+        if px == py:
+            return False
+        if rank[px] < rank[py]:
+            px, py = py, px
+        parent[py] = px
+        if rank[px] == rank[py]:
+            rank[px] += 1
+        return True
+
+    # Sort edges by weight
+    sorted_edges = sorted(edges, key=lambda e: e["weight"])
+
+    mst_edges = []
+    total_weight = 0
+
+    for edge in sorted_edges:
+        if union(edge["source"], edge["target"]):
+            mst_edges.append(MSTEdge(
+                source=edge["source"],
+                target=edge["target"],
+                weight=edge["weight"],
+            ))
+            total_weight += edge["weight"]
+            if len(mst_edges) == len(nodes) - 1:
+                break
+
+    solve_time = (time.time() - start_time) * 1000
+
+    if len(mst_edges) < len(nodes) - 1:
+        return MSTResult(status=SolverStatus.INFEASIBLE, solve_time_ms=solve_time)
+
+    return MSTResult(
+        status=SolverStatus.OPTIMAL,
+        total_weight=total_weight,
+        edges=mst_edges,
+        solve_time_ms=solve_time,
+    )
+
+
+def solve_multi_commodity_flow(
+    nodes: list[str],
+    arcs: list[dict],
+    commodities: list[dict],
+    time_limit_seconds: int = 30,
+) -> "MultiCommodityFlowResult":
+    """
+    Solve Multi-Commodity Flow Problem using LP.
+
+    Args:
+        nodes: List of node names.
+        arcs: List of arcs with 'source', 'target', 'capacity', 'cost'.
+        commodities: List of commodities with 'name', 'source', 'sink', 'demand'.
+        time_limit_seconds: Solver time limit.
+
+    Returns:
+        MultiCommodityFlowResult with flows per commodity.
+    """
+    from ortools.linear_solver import pywraplp
+
+    from vertex.models.network import MultiCommodityFlowResult
+
+    start_time = time.time()
+
+    solver = pywraplp.Solver.CreateSolver("GLOP")
+    if not solver:
+        return MultiCommodityFlowResult(status=SolverStatus.ERROR)
+
+    node_idx = _build_node_index(nodes)
+    arc_keys = [(a["source"], a["target"]) for a in arcs]
+
+    # Variables: flow[k][a] = flow of commodity k on arc a
+    flow = {}
+    for k, comm in enumerate(commodities):
+        for i, arc in enumerate(arcs):
+            flow[(k, i)] = solver.NumVar(0, arc["capacity"], f"f_{k}_{i}")
+
+    # Capacity constraints: sum of all commodities on arc <= capacity
+    for i, arc in enumerate(arcs):
+        solver.Add(sum(flow[(k, i)] for k in range(len(commodities))) <= arc["capacity"])
+
+    # Flow conservation for each commodity
+    for k, comm in enumerate(commodities):
+        for j, node in enumerate(nodes):
+            inflow = sum(flow[(k, i)] for i, a in enumerate(arcs) if a["target"] == node)
+            outflow = sum(flow[(k, i)] for i, a in enumerate(arcs) if a["source"] == node)
+
+            if node == comm["source"]:
+                solver.Add(outflow - inflow == comm["demand"])
+            elif node == comm["sink"]:
+                solver.Add(inflow - outflow == comm["demand"])
+            else:
+                solver.Add(inflow == outflow)
+
+    # Minimize total cost
+    solver.Minimize(sum(
+        flow[(k, i)] * arcs[i].get("cost", 0)
+        for k in range(len(commodities))
+        for i in range(len(arcs))
+    ))
+
+    solver.set_time_limit(time_limit_seconds * 1000)
+    status = solver.Solve()
+    solve_time = (time.time() - start_time) * 1000
+
+    if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
+        return MultiCommodityFlowResult(status=SolverStatus.INFEASIBLE, solve_time_ms=solve_time)
+
+    commodity_flows = {}
+    for k, comm in enumerate(commodities):
+        arc_flows = {}
+        for i, (src, tgt) in enumerate(arc_keys):
+            if flow[(k, i)].solution_value() > 1e-6:
+                arc_flows[f"{src}->{tgt}"] = round(flow[(k, i)].solution_value(), 6)
+        commodity_flows[comm["name"]] = arc_flows
+
+    return MultiCommodityFlowResult(
+        status=SolverStatus.OPTIMAL if status == pywraplp.Solver.OPTIMAL else SolverStatus.FEASIBLE,
+        total_cost=round(solver.Objective().Value(), 6),
+        commodity_flows=commodity_flows,
+        solve_time_ms=solve_time,
+    )

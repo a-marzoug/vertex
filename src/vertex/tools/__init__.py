@@ -2,7 +2,13 @@
 
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
-from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_shortest_path
+from vertex.tools.network import (
+    compute_max_flow,
+    compute_min_cost_flow,
+    compute_mst,
+    compute_multi_commodity_flow,
+    compute_shortest_path,
+)
 from vertex.tools.scheduling import (
     compute_bin_packing,
     compute_cutting_stock,
@@ -23,6 +29,8 @@ __all__ = [
     "compute_job_shop",
     "compute_max_flow",
     "compute_min_cost_flow",
+    "compute_mst",
+    "compute_multi_commodity_flow",
     "compute_set_cover",
     "compute_shortest_path",
     "compute_tsp",

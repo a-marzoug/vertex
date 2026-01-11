@@ -5,13 +5,13 @@ from mcp.server.fastmcp import FastMCP
 from vertex.config import DEFAULT_HOST, DEFAULT_PORT, SERVER_DESCRIPTION, SERVER_NAME
 from vertex.models.linear import LPSolution
 from vertex.models.mip import MIPSolution
-from vertex.models.network import MaxFlowResult, MinCostFlowResult, ShortestPathResult
+from vertex.models.network import MaxFlowResult, MinCostFlowResult, MSTResult, MultiCommodityFlowResult, ShortestPathResult
 from vertex.models.scheduling import BinPackingResult, CuttingStockResult, GraphColoringResult, JobShopResult, SetCoverResult, TSPResult, VRPResult
 from vertex.prompts.linear import formulate_lp, interpret_solution
 from vertex.prompts.mip import formulate_mip
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
-from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_shortest_path
+from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_mst, compute_multi_commodity_flow, compute_shortest_path
 from vertex.tools.scheduling import (
     compute_bin_packing,
     compute_cutting_stock,
@@ -29,10 +29,12 @@ from vertex.tools.templates.diet import DietResult
 from vertex.tools.templates.diet import optimize_diet as _optimize_diet
 from vertex.tools.templates.facility import FacilityResult
 from vertex.tools.templates.facility import optimize_facility_location as _optimize_facility
+from vertex.tools.templates.inventory import EOQResult, MultiItemInventoryResult, optimize_eoq, optimize_multi_item_inventory
 from vertex.tools.templates.knapsack import KnapsackResult
 from vertex.tools.templates.knapsack import optimize_knapsack as _optimize_knapsack
 from vertex.tools.templates.portfolio import PortfolioResult, optimize_portfolio
 from vertex.tools.templates.production import ProductionResult, optimize_production
+from vertex.tools.templates.workforce import WorkforceResult, optimize_workforce_schedule
 
 mcp = FastMCP(
     SERVER_NAME,
@@ -153,6 +155,52 @@ def optimize_facility_locations(
     return _optimize_facility(facilities, customers, fixed_costs, transport_costs)
 
 
+@mcp.tool()
+def optimize_inventory_eoq(
+    annual_demand: float,
+    ordering_cost: float,
+    holding_cost_per_unit: float,
+    lead_time_days: float = 0,
+    safety_stock: float = 0,
+) -> EOQResult:
+    """
+    Calculate Economic Order Quantity - optimal order size minimizing total cost.
+
+    Args:
+        annual_demand: Annual demand in units.
+        ordering_cost: Fixed cost per order.
+        holding_cost_per_unit: Annual holding cost per unit.
+        lead_time_days: Lead time for reorder point.
+        safety_stock: Safety stock units.
+    """
+    return optimize_eoq(annual_demand, ordering_cost, holding_cost_per_unit, lead_time_days, safety_stock)
+
+
+@mcp.tool()
+def optimize_workforce(
+    workers: list[str],
+    days: int,
+    shifts: list[str],
+    requirements: dict[str, list[int]],
+    costs: dict[str, float] | None = None,
+    max_shifts_per_worker: int | None = None,
+    time_limit_seconds: int = 30,
+) -> WorkforceResult:
+    """
+    Schedule workers to shifts minimizing cost while meeting requirements.
+
+    Args:
+        workers: Worker names.
+        days: Number of days to schedule.
+        shifts: Shift names (e.g., ["morning", "afternoon", "night"]).
+        requirements: Shift -> list of required workers per day.
+        costs: Cost per worker (defaults to 1).
+        max_shifts_per_worker: Maximum shifts per worker.
+        time_limit_seconds: Solver time limit.
+    """
+    return optimize_workforce_schedule(workers, days, shifts, requirements, costs, max_shifts_per_worker, time_limit_seconds)
+
+
 # Network Tools
 @mcp.tool()
 def find_max_flow(
@@ -209,6 +257,40 @@ def find_shortest_path(
         target: End node.
     """
     return compute_shortest_path(nodes, arcs, source, target)
+
+
+@mcp.tool()
+def find_minimum_spanning_tree(
+    nodes: list[str],
+    edges: list[dict],
+) -> MSTResult:
+    """
+    Find Minimum Spanning Tree connecting all nodes with minimum total weight.
+
+    Args:
+        nodes: Node names.
+        edges: Edges with 'source', 'target', 'weight'.
+    """
+    return compute_mst(nodes, edges)
+
+
+@mcp.tool()
+def find_multi_commodity_flow(
+    nodes: list[str],
+    arcs: list[dict],
+    commodities: list[dict],
+    time_limit_seconds: int = 30,
+) -> MultiCommodityFlowResult:
+    """
+    Solve Multi-Commodity Flow - route multiple commodities through shared network.
+
+    Args:
+        nodes: Node names.
+        arcs: Arcs with 'source', 'target', 'capacity', 'cost'.
+        commodities: List with 'name', 'source', 'sink', 'demand'.
+        time_limit_seconds: Solver time limit.
+    """
+    return compute_multi_commodity_flow(nodes, arcs, commodities, time_limit_seconds)
 
 
 # Scheduling & Routing Tools

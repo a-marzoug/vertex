@@ -18,6 +18,9 @@ from vertex.models.network import (
     Arc,
     MaxFlowResult,
     MinCostFlowResult,
+    MSTEdge,
+    MSTResult,
+    MultiCommodityFlowResult,
     ShortestPathResult,
 )
 from vertex.models.scheduling import (
@@ -52,6 +55,9 @@ __all__ = [
     "MIPProblem",
     "MIPSolution",
     "MIPVariable",
+    "MSTEdge",
+    "MSTResult",
+    "MultiCommodityFlowResult",
     "Objective",
     "ScheduledTask",
     "SetCoverResult",

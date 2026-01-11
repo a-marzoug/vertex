@@ -42,3 +42,32 @@ class ShortestPathResult(BaseModel):
     distance: float | None = None
     path: list[str] = Field(default_factory=list)
     solve_time_ms: float | None = None
+
+
+class MSTEdge(BaseModel):
+    """Edge in minimum spanning tree."""
+
+    source: str
+    target: str
+    weight: float
+
+
+class MSTResult(BaseModel):
+    """Result of Minimum Spanning Tree computation."""
+
+    status: SolverStatus
+    total_weight: float | None = None
+    edges: list[MSTEdge] = Field(default_factory=list)
+    solve_time_ms: float | None = None
+
+
+class MultiCommodityFlowResult(BaseModel):
+    """Result of Multi-Commodity Flow computation."""
+
+    status: SolverStatus
+    total_cost: float | None = None
+    commodity_flows: dict[str, dict[str, float]] = Field(
+        default_factory=dict,
+        description="Commodity -> (arc -> flow) mapping",
+    )
+    solve_time_ms: float | None = None
