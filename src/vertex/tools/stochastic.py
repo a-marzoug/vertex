@@ -1,7 +1,9 @@
 """MCP tools for stochastic and dynamic optimization."""
 
 from vertex.models.stochastic import (
+    CrewScheduleResult,
     LotSizingResult,
+    MonteCarloResult,
     NewsvendorResult,
     QueueMetrics,
     RobustResult,
@@ -166,3 +168,104 @@ def analyze_queue_mmc(
     """
     from vertex.solvers.stochastic import compute_mmc_metrics
     return compute_mmc_metrics(arrival_rate, service_rate, num_servers)
+
+
+def simulate_newsvendor_monte_carlo(
+    selling_price: float,
+    cost: float,
+    salvage_value: float,
+    order_quantity: float,
+    mean_demand: float,
+    std_demand: float,
+    num_simulations: int = 10000,
+) -> "MonteCarloResult":
+    """
+    Run Monte Carlo simulation for newsvendor profit distribution.
+    
+    Evaluates a given order quantity under demand uncertainty.
+    
+    Args:
+        selling_price: Revenue per unit sold
+        cost: Purchase cost per unit
+        salvage_value: Value per unsold unit
+        order_quantity: Fixed order quantity to evaluate
+        mean_demand: Expected demand
+        std_demand: Demand standard deviation
+        num_simulations: Number of simulation runs
+    
+    Returns:
+        Profit distribution statistics and risk metrics
+    """
+    from vertex.solvers.stochastic import run_monte_carlo_newsvendor
+    return run_monte_carlo_newsvendor(
+        selling_price, cost, salvage_value, order_quantity,
+        mean_demand, std_demand, num_simulations
+    )
+
+
+def simulate_production_monte_carlo(
+    products: list[str],
+    production_quantities: dict[str, float],
+    mean_demands: dict[str, float],
+    std_demands: dict[str, float],
+    selling_prices: dict[str, float],
+    production_costs: dict[str, float],
+    shortage_costs: dict[str, float],
+    num_simulations: int = 10000,
+) -> "MonteCarloResult":
+    """
+    Run Monte Carlo simulation for multi-product production planning.
+    
+    Args:
+        products: Product names
+        production_quantities: Quantities to produce (decision to evaluate)
+        mean_demands: Expected demand per product
+        std_demands: Demand std dev per product
+        selling_prices: Revenue per unit sold
+        production_costs: Cost per unit produced
+        shortage_costs: Penalty per unit of unmet demand
+        num_simulations: Number of simulation runs
+    
+    Returns:
+        Profit distribution statistics and risk metrics
+    """
+    from vertex.solvers.stochastic import run_monte_carlo_production
+    return run_monte_carlo_production(
+        products, production_quantities, mean_demands, std_demands,
+        selling_prices, production_costs, shortage_costs, num_simulations
+    )
+
+
+def schedule_crew(
+    workers: list[str],
+    days: int,
+    shifts: list[str],
+    requirements: dict[str, list[int]],
+    worker_availability: dict[str, list[tuple[int, str]]] | None = None,
+    costs: dict[str, float] | None = None,
+    max_shifts_per_worker: int | None = None,
+    min_rest_between_shifts: int = 0,
+    time_limit_seconds: int = 30,
+) -> "CrewScheduleResult":
+    """
+    Solve crew/shift scheduling with constraints.
+    
+    Args:
+        workers: Worker names
+        days: Number of days to schedule
+        shifts: Shift names (e.g., ["morning", "afternoon", "night"])
+        requirements: shift -> [required workers per day]
+        worker_availability: Optional worker -> [(day, shift)] availability
+        costs: Cost per worker (default 1)
+        max_shifts_per_worker: Maximum shifts per worker over period
+        min_rest_between_shifts: Minimum rest periods between shifts
+        time_limit_seconds: Solver time limit
+    
+    Returns:
+        Worker assignments and coverage
+    """
+    from vertex.solvers.stochastic import solve_crew_scheduling
+    return solve_crew_scheduling(
+        workers, days, shifts, requirements, worker_availability,
+        costs, max_shifts_per_worker, min_rest_between_shifts, time_limit_seconds
+    )

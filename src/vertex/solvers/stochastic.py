@@ -355,3 +355,185 @@ def compute_mmc_metrics(arrival_rate: float, service_rate: float, num_servers: i
         prob_wait=round(Pc, 4),
         prob_empty=round(P0, 4)
     )
+
+
+def run_monte_carlo_newsvendor(
+    selling_price: float,
+    cost: float,
+    salvage_value: float,
+    order_quantity: float,
+    mean_demand: float,
+    std_demand: float,
+    num_simulations: int = 10000,
+) -> "MonteCarloResult":
+    """
+    Run Monte Carlo simulation for newsvendor profit distribution.
+    """
+    from vertex.models.stochastic import MonteCarloResult
+    import numpy as np
+    
+    np.random.seed(42)
+    demands = np.random.normal(mean_demand, std_demand, num_simulations)
+    demands = np.maximum(demands, 0)  # No negative demand
+    
+    sales = np.minimum(order_quantity, demands)
+    leftover = np.maximum(order_quantity - demands, 0)
+    profits = selling_price * sales - cost * order_quantity + salvage_value * leftover
+    
+    return MonteCarloResult(
+        status="COMPLETED",
+        num_simulations=num_simulations,
+        mean_objective=round(float(np.mean(profits)), 2),
+        std_objective=round(float(np.std(profits)), 2),
+        percentile_5=round(float(np.percentile(profits, 5)), 2),
+        percentile_50=round(float(np.percentile(profits, 50)), 2),
+        percentile_95=round(float(np.percentile(profits, 95)), 2),
+        prob_feasible=1.0,
+        var_95=round(float(np.percentile(profits, 5)), 2),  # VaR at 95% confidence
+    )
+
+
+def run_monte_carlo_production(
+    products: list[str],
+    production_quantities: dict[str, float],
+    mean_demands: dict[str, float],
+    std_demands: dict[str, float],
+    selling_prices: dict[str, float],
+    production_costs: dict[str, float],
+    shortage_costs: dict[str, float],
+    num_simulations: int = 10000,
+) -> "MonteCarloResult":
+    """
+    Run Monte Carlo simulation for production planning profit distribution.
+    """
+    from vertex.models.stochastic import MonteCarloResult
+    import numpy as np
+    
+    np.random.seed(42)
+    profits = np.zeros(num_simulations)
+    
+    for p in products:
+        demands = np.random.normal(mean_demands[p], std_demands[p], num_simulations)
+        demands = np.maximum(demands, 0)
+        q = production_quantities[p]
+        
+        sales = np.minimum(q, demands)
+        shortage = np.maximum(demands - q, 0)
+        
+        profits += (selling_prices[p] * sales 
+                   - production_costs[p] * q 
+                   - shortage_costs[p] * shortage)
+    
+    return MonteCarloResult(
+        status="COMPLETED",
+        num_simulations=num_simulations,
+        mean_objective=round(float(np.mean(profits)), 2),
+        std_objective=round(float(np.std(profits)), 2),
+        percentile_5=round(float(np.percentile(profits, 5)), 2),
+        percentile_50=round(float(np.percentile(profits, 50)), 2),
+        percentile_95=round(float(np.percentile(profits, 95)), 2),
+        prob_feasible=1.0,
+        var_95=round(float(np.percentile(profits, 5)), 2),
+    )
+
+
+def solve_crew_scheduling(
+    workers: list[str],
+    days: int,
+    shifts: list[str],
+    requirements: dict[str, list[int]],
+    worker_availability: dict[str, list[tuple[int, str]]] | None = None,
+    costs: dict[str, float] | None = None,
+    max_shifts_per_worker: int | None = None,
+    min_rest_between_shifts: int = 0,
+    time_limit_seconds: int = 30,
+) -> "CrewScheduleResult":
+    """
+    Solve crew scheduling with availability and rest constraints.
+    """
+    from vertex.models.stochastic import CrewScheduleResult
+    from ortools.sat.python import cp_model
+    import time
+    
+    start_time = time.time()
+    model = cp_model.CpModel()
+    
+    n_workers = len(workers)
+    n_shifts = len(shifts)
+    costs = costs or {w: 1 for w in workers}
+    
+    # x[w, d, s] = 1 if worker w works day d shift s
+    x = {}
+    for w in range(n_workers):
+        for d in range(days):
+            for s in range(n_shifts):
+                x[(w, d, s)] = model.new_bool_var(f"x_{w}_{d}_{s}")
+    
+    # Availability constraints
+    if worker_availability:
+        for w_idx, w in enumerate(workers):
+            if w in worker_availability:
+                available = set(worker_availability[w])
+                for d in range(days):
+                    for s_idx, s in enumerate(shifts):
+                        if (d, s) not in available:
+                            model.add(x[(w_idx, d, s_idx)] == 0)
+    
+    # Coverage requirements
+    for s_idx, s in enumerate(shifts):
+        reqs = requirements.get(s, [0] * days)
+        for d in range(days):
+            model.add(sum(x[(w, d, s_idx)] for w in range(n_workers)) >= reqs[d])
+    
+    # Max one shift per day per worker
+    for w in range(n_workers):
+        for d in range(days):
+            model.add(sum(x[(w, d, s)] for s in range(n_shifts)) <= 1)
+    
+    # Max shifts per worker
+    if max_shifts_per_worker:
+        for w in range(n_workers):
+            model.add(sum(x[(w, d, s)] for d in range(days) for s in range(n_shifts)) <= max_shifts_per_worker)
+    
+    # Minimum rest between shifts (consecutive days)
+    if min_rest_between_shifts > 0 and n_shifts > 1:
+        for w in range(n_workers):
+            for d in range(days - 1):
+                # If worked last shift of day d, can't work first shift of day d+1
+                model.add(x[(w, d, n_shifts - 1)] + x[(w, d + 1, 0)] <= 1)
+    
+    # Minimize cost
+    model.minimize(sum(
+        int(costs[workers[w]] * 100) * x[(w, d, s)]
+        for w in range(n_workers) for d in range(days) for s in range(n_shifts)
+    ))
+    
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = time_limit_seconds
+    status = solver.solve(model)
+    elapsed = time.time() - start_time
+    
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return CrewScheduleResult(
+            status="INFEASIBLE", total_cost=0, assignments={}, coverage={}, solve_time=elapsed
+        )
+    
+    assignments = {w: [] for w in workers}
+    coverage = {s: {d: 0 for d in range(days)} for s in shifts}
+    total_cost = 0
+    
+    for w in range(n_workers):
+        for d in range(days):
+            for s in range(n_shifts):
+                if solver.value(x[(w, d, s)]):
+                    assignments[workers[w]].append(f"day{d}_{shifts[s]}")
+                    coverage[shifts[s]][d] += 1
+                    total_cost += costs[workers[w]]
+    
+    return CrewScheduleResult(
+        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        total_cost=round(total_cost, 2),
+        assignments={w: a for w, a in assignments.items() if a},
+        coverage=coverage,
+        solve_time=round(elapsed, 4)
+    )

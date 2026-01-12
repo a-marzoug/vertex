@@ -39,7 +39,9 @@ from vertex.models.scheduling import (
     VRPRoute,
 )
 from vertex.models.stochastic import (
+    CrewScheduleResult,
     LotSizingResult,
+    MonteCarloResult,
     NewsvendorResult,
     QueueMetrics,
     RobustResult,
@@ -52,6 +54,7 @@ __all__ = [
     "BinAssignment",
     "BinPackingResult",
     "Constraint",
+    "CrewScheduleResult",
     "CuttingPattern",
     "CuttingStockResult",
     "FlowShopResult",
@@ -67,6 +70,7 @@ __all__ = [
     "MIPProblem",
     "MIPSolution",
     "MIPVariable",
+    "MonteCarloResult",
     "MSTEdge",
     "MSTResult",
     "MultiCommodityFlowResult",

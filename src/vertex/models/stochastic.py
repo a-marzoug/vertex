@@ -56,3 +56,25 @@ class QueueMetrics(BaseModel):
     avg_system_time: float  # W
     prob_wait: float  # P(wait > 0)
     prob_empty: float  # P(0 customers)
+
+
+class MonteCarloResult(BaseModel):
+    """Result of Monte Carlo simulation."""
+    status: str
+    num_simulations: int
+    mean_objective: float
+    std_objective: float
+    percentile_5: float
+    percentile_50: float
+    percentile_95: float
+    prob_feasible: float
+    var_95: float  # Value at Risk (5th percentile for costs)
+
+
+class CrewScheduleResult(BaseModel):
+    """Result of crew/shift scheduling."""
+    status: str
+    total_cost: float
+    assignments: dict[str, list[str]]  # worker -> list of (day, shift)
+    coverage: dict[str, dict[int, int]]  # shift -> day -> workers assigned
+    solve_time: float

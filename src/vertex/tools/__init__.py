@@ -39,6 +39,9 @@ from vertex.tools.stochastic import (
     solve_robust_optimization,
     analyze_queue_mm1,
     analyze_queue_mmc,
+    simulate_newsvendor_monte_carlo,
+    simulate_production_monte_carlo,
+    schedule_crew,
 )
 
 __all__ = [
@@ -80,4 +83,7 @@ __all__ = [
     "solve_robust_optimization",
     "analyze_queue_mm1",
     "analyze_queue_mmc",
+    "simulate_newsvendor_monte_carlo",
+    "simulate_production_monte_carlo",
+    "schedule_crew",
 ]
