@@ -577,3 +577,161 @@ def solve_flexible_job_shop(
         "schedule": sorted(schedule, key=lambda x: (x["job"], x["task"])),
         "solve_time_ms": elapsed,
     }
+
+
+def solve_flow_shop(
+    processing_times: list[list[int]],
+    time_limit_seconds: int = 30,
+) -> "FlowShopResult":
+    """
+    Solve Flow Shop Scheduling - all jobs follow same machine sequence.
+    
+    Args:
+        processing_times: processing_times[job][machine] = duration
+        time_limit_seconds: Solver time limit.
+    """
+    from vertex.models.scheduling import FlowShopResult, ScheduledTask
+    
+    start_time = time.time()
+    model = cp_model.CpModel()
+    
+    n_jobs = len(processing_times)
+    n_machines = len(processing_times[0]) if n_jobs > 0 else 0
+    horizon = sum(sum(job) for job in processing_times)
+    
+    # Variables: start[j][m] = start time of job j on machine m
+    starts = {}
+    ends = {}
+    intervals = {}
+    
+    for j in range(n_jobs):
+        for m in range(n_machines):
+            dur = processing_times[j][m]
+            starts[(j, m)] = model.new_int_var(0, horizon, f"start_{j}_{m}")
+            ends[(j, m)] = model.new_int_var(0, horizon, f"end_{j}_{m}")
+            intervals[(j, m)] = model.new_interval_var(
+                starts[(j, m)], dur, ends[(j, m)], f"interval_{j}_{m}"
+            )
+    
+    # Precedence: job j must finish machine m before starting m+1
+    for j in range(n_jobs):
+        for m in range(n_machines - 1):
+            model.add(starts[(j, m + 1)] >= ends[(j, m)])
+    
+    # No overlap on each machine
+    for m in range(n_machines):
+        model.add_no_overlap([intervals[(j, m)] for j in range(n_jobs)])
+    
+    # Minimize makespan
+    makespan = model.new_int_var(0, horizon, "makespan")
+    model.add_max_equality(makespan, [ends[(j, n_machines - 1)] for j in range(n_jobs)])
+    model.minimize(makespan)
+    
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = time_limit_seconds
+    status = solver.solve(model)
+    elapsed = (time.time() - start_time) * 1000
+    
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return FlowShopResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
+    
+    # Extract job sequence (order on first machine)
+    first_machine_starts = [(j, solver.value(starts[(j, 0)])) for j in range(n_jobs)]
+    job_sequence = [j for j, _ in sorted(first_machine_starts, key=lambda x: x[1])]
+    
+    schedule = []
+    for j in range(n_jobs):
+        for m in range(n_machines):
+            schedule.append(ScheduledTask(
+                job=j, task=m, machine=m,
+                start=solver.value(starts[(j, m)]),
+                duration=processing_times[j][m],
+                end=solver.value(ends[(j, m)]),
+            ))
+    
+    return FlowShopResult(
+        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        makespan=solver.value(makespan),
+        job_sequence=job_sequence,
+        schedule=sorted(schedule, key=lambda t: (t.job, t.task)),
+        solve_time_ms=elapsed,
+    )
+
+
+def solve_parallel_machines(
+    job_durations: list[int],
+    num_machines: int,
+    time_limit_seconds: int = 30,
+) -> "ParallelMachineResult":
+    """
+    Solve Parallel Machine Scheduling - assign jobs to identical machines.
+    
+    Args:
+        job_durations: Duration of each job.
+        num_machines: Number of identical machines.
+        time_limit_seconds: Solver time limit.
+    """
+    from vertex.models.scheduling import ParallelMachineResult, ScheduledTask
+    
+    start_time = time.time()
+    model = cp_model.CpModel()
+    
+    n_jobs = len(job_durations)
+    horizon = sum(job_durations)
+    
+    # Variables
+    starts = [model.new_int_var(0, horizon, f"start_{j}") for j in range(n_jobs)]
+    ends = [model.new_int_var(0, horizon, f"end_{j}") for j in range(n_jobs)]
+    machine_assign = [model.new_int_var(0, num_machines - 1, f"machine_{j}") for j in range(n_jobs)]
+    
+    # Intervals per machine (optional)
+    intervals_per_machine = [[] for _ in range(num_machines)]
+    presences = {}
+    
+    for j in range(n_jobs):
+        for m in range(num_machines):
+            present = model.new_bool_var(f"present_{j}_{m}")
+            interval = model.new_optional_interval_var(
+                starts[j], job_durations[j], ends[j], present, f"interval_{j}_{m}"
+            )
+            intervals_per_machine[m].append(interval)
+            presences[(j, m)] = present
+            model.add(machine_assign[j] == m).only_enforce_if(present)
+        model.add_exactly_one(presences[(j, m)] for m in range(num_machines))
+    
+    # No overlap on each machine
+    for m in range(num_machines):
+        model.add_no_overlap(intervals_per_machine[m])
+    
+    # Minimize makespan
+    makespan = model.new_int_var(0, horizon, "makespan")
+    model.add_max_equality(makespan, ends)
+    model.minimize(makespan)
+    
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = time_limit_seconds
+    status = solver.solve(model)
+    elapsed = (time.time() - start_time) * 1000
+    
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return ParallelMachineResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
+    
+    machine_assignments = {m: [] for m in range(num_machines)}
+    schedule = []
+    for j in range(n_jobs):
+        m = solver.value(machine_assign[j])
+        machine_assignments[m].append(j)
+        schedule.append(ScheduledTask(
+            job=j, task=0, machine=m,
+            start=solver.value(starts[j]),
+            duration=job_durations[j],
+            end=solver.value(ends[j]),
+        ))
+    
+    return ParallelMachineResult(
+        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        makespan=solver.value(makespan),
+        machine_assignments=machine_assignments,
+        schedule=sorted(schedule, key=lambda t: (t.machine, t.start)),
+        solve_time_ms=elapsed,
+    )

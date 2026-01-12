@@ -3,8 +3,10 @@
 from vertex.models.scheduling import (
     BinPackingResult,
     CuttingStockResult,
+    FlowShopResult,
     GraphColoringResult,
     JobShopResult,
+    ParallelMachineResult,
     SetCoverResult,
     TSPResult,
     VRPResult,
@@ -12,8 +14,10 @@ from vertex.models.scheduling import (
 from vertex.solvers.scheduling import (
     solve_bin_packing,
     solve_cutting_stock,
+    solve_flow_shop,
     solve_graph_coloring,
     solve_job_shop,
+    solve_parallel_machines,
     solve_set_cover,
     solve_tsp,
     solve_vrp,
@@ -218,3 +222,40 @@ def compute_flexible_job_shop(
     """
     from vertex.solvers.scheduling import solve_flexible_job_shop
     return solve_flexible_job_shop(jobs, time_limit_seconds)
+
+
+def compute_flow_shop(
+    processing_times: list[list[int]],
+    time_limit_seconds: int = 30,
+) -> FlowShopResult:
+    """
+    Solve Flow Shop Scheduling - all jobs follow same machine sequence.
+    
+    Args:
+        processing_times: processing_times[job][machine] = duration.
+            All jobs visit machines 0, 1, 2, ... in order.
+        time_limit_seconds: Solver time limit.
+    
+    Returns:
+        Optimal job sequence and makespan.
+    """
+    return solve_flow_shop(processing_times, time_limit_seconds)
+
+
+def compute_parallel_machines(
+    job_durations: list[int],
+    num_machines: int,
+    time_limit_seconds: int = 30,
+) -> ParallelMachineResult:
+    """
+    Solve Parallel Machine Scheduling - assign jobs to identical machines.
+    
+    Args:
+        job_durations: Duration of each job.
+        num_machines: Number of identical parallel machines.
+        time_limit_seconds: Solver time limit.
+    
+    Returns:
+        Machine assignments and makespan.
+    """
+    return solve_parallel_machines(job_durations, num_machines, time_limit_seconds)

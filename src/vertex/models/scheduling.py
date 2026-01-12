@@ -118,3 +118,25 @@ class CuttingStockResult(BaseModel):
     patterns: list[CuttingPattern] = Field(default_factory=list)
     total_waste: float | None = None
     solve_time_ms: float | None = None
+
+
+# Flow Shop Models
+class FlowShopResult(BaseModel):
+    """Result of Flow Shop Scheduling."""
+
+    status: SolverStatus
+    makespan: int | None = None
+    job_sequence: list[int] = Field(default_factory=list, description="Order of jobs")
+    schedule: list[ScheduledTask] = Field(default_factory=list)
+    solve_time_ms: float | None = None
+
+
+# Parallel Machine Models
+class ParallelMachineResult(BaseModel):
+    """Result of Parallel Machine Scheduling."""
+
+    status: SolverStatus
+    makespan: int | None = None
+    machine_assignments: dict[int, list[int]] = Field(default_factory=dict, description="Machine to job list")
+    schedule: list[ScheduledTask] = Field(default_factory=list)
+    solve_time_ms: float | None = None

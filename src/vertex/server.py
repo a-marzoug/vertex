@@ -40,8 +40,13 @@ from vertex.tools.stochastic import (
     compute_lot_sizing,
     compute_newsvendor,
     compute_two_stage_stochastic,
+    solve_robust_optimization,
+    analyze_queue_mm1,
+    analyze_queue_mmc,
 )
-from vertex.models.stochastic import LotSizingResult, NewsvendorResult, TwoStageResult
+from vertex.models.stochastic import LotSizingResult, NewsvendorResult, QueueMetrics, RobustResult, TwoStageResult
+from vertex.models.scheduling import FlowShopResult, ParallelMachineResult
+from vertex.tools.scheduling import compute_flow_shop, compute_parallel_machines
 from vertex.tools.templates.assignment import AssignmentResult
 from vertex.tools.templates.assignment import optimize_assignment as _optimize_assignment
 from vertex.tools.templates.diet import DietResult
@@ -794,6 +799,113 @@ def solve_lot_sizing(
         production_cost: Variable cost per unit (optional).
     """
     return compute_lot_sizing(demands, setup_cost, holding_cost, production_cost)
+
+
+@mcp.tool()
+def solve_robust_production(
+    products: list[str],
+    nominal_demand: dict[str, float],
+    demand_deviation: dict[str, float],
+    uncertainty_budget: float,
+    production_costs: dict[str, float],
+    selling_prices: dict[str, float],
+    capacity: dict[str, float] | None = None,
+) -> RobustResult:
+    """
+    Solve robust optimization for production under demand uncertainty.
+
+    Uses Bertsimas-Sim approach: protects against worst-case where
+    up to Gamma parameters deviate from nominal.
+
+    Args:
+        products: Product names.
+        nominal_demand: Expected demand per product.
+        demand_deviation: Maximum deviation from nominal.
+        uncertainty_budget: Gamma - max deviating parameters.
+        production_costs: Cost per unit.
+        selling_prices: Revenue per unit sold.
+        capacity: Optional production limits.
+    """
+    return solve_robust_optimization(
+        products, nominal_demand, demand_deviation, uncertainty_budget,
+        production_costs, selling_prices, capacity
+    )
+
+
+@mcp.tool()
+def analyze_mm1_queue(
+    arrival_rate: float,
+    service_rate: float,
+) -> QueueMetrics:
+    """
+    Analyze M/M/1 queue performance (single server).
+
+    Args:
+        arrival_rate: Lambda - average arrivals per time unit.
+        service_rate: Mu - average services per time unit.
+
+    Returns:
+        Utilization, queue length, wait times, probabilities.
+    """
+    return analyze_queue_mm1(arrival_rate, service_rate)
+
+
+@mcp.tool()
+def analyze_mmc_queue(
+    arrival_rate: float,
+    service_rate: float,
+    num_servers: int,
+) -> QueueMetrics:
+    """
+    Analyze M/M/c queue performance (multiple servers).
+
+    Args:
+        arrival_rate: Lambda - average arrivals per time unit.
+        service_rate: Mu - service rate per server.
+        num_servers: c - number of parallel servers.
+
+    Returns:
+        Utilization, queue length, wait times, probabilities.
+    """
+    return analyze_queue_mmc(arrival_rate, service_rate, num_servers)
+
+
+@mcp.tool()
+def solve_flow_shop(
+    processing_times: list[list[int]],
+    time_limit_seconds: int = 30,
+) -> FlowShopResult:
+    """
+    Solve Flow Shop Scheduling - all jobs follow same machine sequence.
+
+    Args:
+        processing_times: processing_times[job][machine] = duration.
+        time_limit_seconds: Solver time limit.
+
+    Returns:
+        Optimal job sequence and makespan.
+    """
+    return compute_flow_shop(processing_times, time_limit_seconds)
+
+
+@mcp.tool()
+def solve_parallel_machines(
+    job_durations: list[int],
+    num_machines: int,
+    time_limit_seconds: int = 30,
+) -> ParallelMachineResult:
+    """
+    Solve Parallel Machine Scheduling - assign jobs to identical machines.
+
+    Args:
+        job_durations: Duration of each job.
+        num_machines: Number of identical parallel machines.
+        time_limit_seconds: Solver time limit.
+
+    Returns:
+        Machine assignments minimizing makespan.
+    """
+    return compute_parallel_machines(job_durations, num_machines, time_limit_seconds)
 
 
 # Prompts

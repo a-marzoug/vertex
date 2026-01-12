@@ -208,3 +208,150 @@ def solve_lot_sizing(
         inventory_levels=inventory,
         setup_periods=setup_periods
     )
+
+
+def solve_robust(
+    products: list[str],
+    nominal_demand: dict[str, float],
+    demand_deviation: dict[str, float],
+    uncertainty_budget: float,
+    production_costs: dict[str, float],
+    selling_prices: dict[str, float],
+    capacity: dict[str, float] | None = None,
+) -> "RobustResult":
+    """
+    Solve robust optimization using Bertsimas-Sim formulation.
+    
+    Worst-case profit = sum(price * min(prod, demand - z*deviation)) - cost*prod
+    where sum(z) <= Gamma and 0 <= z <= 1
+    """
+    from vertex.models.stochastic import RobustResult
+    import time
+    
+    start = time.time()
+    solver = pywraplp.Solver.CreateSolver("GLOP")
+    if not solver:
+        return RobustResult(
+            status="ERROR", objective_value=0, worst_case_objective=0,
+            variable_values={}, binding_scenarios=[], solve_time=0
+        )
+    
+    # Production variables
+    prod = {p: solver.NumVar(0, capacity.get(p, solver.infinity()) if capacity else solver.infinity(), f"prod_{p}")
+            for p in products}
+    
+    # Dual variables for robust counterpart
+    # For each product: sales <= demand - z * deviation
+    # Robust: sales <= nominal_demand - lambda - mu_p * deviation
+    # where lambda + sum(mu) <= Gamma, mu >= 0
+    
+    lam = solver.NumVar(0, solver.infinity(), "lambda")
+    mu = {p: solver.NumVar(0, solver.infinity(), f"mu_{p}") for p in products}
+    sales = {p: solver.NumVar(0, solver.infinity(), f"sales_{p}") for p in products}
+    
+    # Budget constraint
+    solver.Add(lam * uncertainty_budget + sum(mu[p] for p in products) <= uncertainty_budget * max(1, len(products)))
+    
+    # Sales constraints (robust)
+    for p in products:
+        # sales <= prod
+        solver.Add(sales[p] <= prod[p])
+        # sales <= nominal - lambda - mu * deviation (worst case)
+        solver.Add(sales[p] <= nominal_demand[p] - lam - mu[p] * demand_deviation[p])
+    
+    # Maximize worst-case profit
+    profit = sum(selling_prices[p] * sales[p] - production_costs[p] * prod[p] for p in products)
+    solver.Maximize(profit)
+    
+    status = solver.Solve()
+    solve_time = time.time() - start
+    
+    if status != pywraplp.Solver.OPTIMAL:
+        return RobustResult(
+            status="INFEASIBLE", objective_value=0, worst_case_objective=0,
+            variable_values={}, binding_scenarios=[], solve_time=solve_time
+        )
+    
+    # Find binding scenarios (where mu > 0)
+    binding = [p for p in products if mu[p].solution_value() > 0.01]
+    
+    return RobustResult(
+        status="OPTIMAL",
+        objective_value=round(solver.Objective().Value(), 2),
+        worst_case_objective=round(solver.Objective().Value(), 2),
+        variable_values={p: round(prod[p].solution_value(), 2) for p in products},
+        binding_scenarios=binding,
+        solve_time=round(solve_time, 4)
+    )
+
+
+def compute_mm1_metrics(arrival_rate: float, service_rate: float) -> "QueueMetrics":
+    """Compute M/M/1 queue metrics."""
+    from vertex.models.stochastic import QueueMetrics
+    
+    if arrival_rate >= service_rate:
+        return QueueMetrics(
+            utilization=1.0, avg_queue_length=float('inf'),
+            avg_system_length=float('inf'), avg_wait_time=float('inf'),
+            avg_system_time=float('inf'), prob_wait=1.0, prob_empty=0.0
+        )
+    
+    rho = arrival_rate / service_rate
+    Lq = rho**2 / (1 - rho)
+    L = rho / (1 - rho)
+    Wq = Lq / arrival_rate
+    W = L / arrival_rate
+    
+    return QueueMetrics(
+        utilization=round(rho, 4),
+        avg_queue_length=round(Lq, 4),
+        avg_system_length=round(L, 4),
+        avg_wait_time=round(Wq, 4),
+        avg_system_time=round(W, 4),
+        prob_wait=round(rho, 4),
+        prob_empty=round(1 - rho, 4)
+    )
+
+
+def compute_mmc_metrics(arrival_rate: float, service_rate: float, num_servers: int) -> "QueueMetrics":
+    """Compute M/M/c queue metrics using Erlang-C formula."""
+    from vertex.models.stochastic import QueueMetrics
+    import math
+    
+    c = num_servers
+    lam = arrival_rate
+    mu = service_rate
+    rho = lam / (c * mu)
+    
+    if rho >= 1:
+        return QueueMetrics(
+            utilization=1.0, avg_queue_length=float('inf'),
+            avg_system_length=float('inf'), avg_wait_time=float('inf'),
+            avg_system_time=float('inf'), prob_wait=1.0, prob_empty=0.0
+        )
+    
+    # Erlang-C: P(wait) = C(c, a) where a = lam/mu
+    a = lam / mu
+    
+    # P0 = probability of empty system
+    sum_terms = sum((a**n) / math.factorial(n) for n in range(c))
+    last_term = (a**c) / (math.factorial(c) * (1 - rho))
+    P0 = 1 / (sum_terms + last_term)
+    
+    # Erlang-C formula
+    Pc = ((a**c) / math.factorial(c)) * (1 / (1 - rho)) * P0
+    
+    Lq = Pc * rho / (1 - rho)
+    L = Lq + a
+    Wq = Lq / lam
+    W = Wq + 1/mu
+    
+    return QueueMetrics(
+        utilization=round(rho, 4),
+        avg_queue_length=round(Lq, 4),
+        avg_system_length=round(L, 4),
+        avg_wait_time=round(Wq, 4),
+        avg_system_time=round(W, 4),
+        prob_wait=round(Pc, 4),
+        prob_empty=round(P0, 4)
+    )

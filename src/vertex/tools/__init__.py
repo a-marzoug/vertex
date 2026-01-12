@@ -36,6 +36,9 @@ from vertex.tools.stochastic import (
     compute_lot_sizing,
     compute_newsvendor,
     compute_two_stage_stochastic,
+    solve_robust_optimization,
+    analyze_queue_mm1,
+    analyze_queue_mmc,
 )
 
 __all__ = [
@@ -74,4 +77,7 @@ __all__ = [
     "compute_lot_sizing",
     "compute_newsvendor",
     "compute_two_stage_stochastic",
+    "solve_robust_optimization",
+    "analyze_queue_mm1",
+    "analyze_queue_mmc",
 ]
