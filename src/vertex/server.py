@@ -52,11 +52,14 @@ from vertex.tools.stochastic import (
     solve_quadratic_assignment,
     find_steiner_tree,
     optimize_multi_echelon_inventory,
+    solve_quadratic_program,
+    optimize_portfolio_qp,
 )
 from vertex.models.stochastic import (
     BinPacking2DResult, ChanceConstrainedResult, CrewScheduleResult,
     LotSizingResult, MonteCarloResult, MultiEchelonResult, NetworkDesignResult,
-    NewsvendorResult, QAPResult, QueueMetrics, RobustResult, SteinerTreeResult, TwoStageResult
+    NewsvendorResult, PortfolioQPResult, QAPResult, QPResult, QueueMetrics,
+    RobustResult, SteinerTreeResult, TwoStageResult
 )
 from vertex.models.scheduling import FlowShopResult, ParallelMachineResult
 from vertex.tools.scheduling import compute_flow_shop, compute_parallel_machines
@@ -1165,6 +1168,62 @@ def optimize_multi_echelon(
     """
     return optimize_multi_echelon_inventory(
         locations, parent, demands, lead_times, holding_costs, service_levels
+    )
+
+
+@mcp.tool()
+def solve_qp(
+    variables: list[str],
+    Q: list[list[float]],
+    c: list[float],
+    A_eq: list[list[float]] | None = None,
+    b_eq: list[float] | None = None,
+    A_ineq: list[list[float]] | None = None,
+    b_ineq: list[float] | None = None,
+    lower_bounds: list[float] | None = None,
+    upper_bounds: list[float] | None = None,
+) -> QPResult:
+    """
+    Solve Quadratic Programming: min 0.5 * x'Qx + c'x.
+
+    Args:
+        variables: Variable names.
+        Q: Quadratic coefficient matrix (n x n).
+        c: Linear coefficient vector.
+        A_eq, b_eq: Equality constraints A_eq @ x = b_eq.
+        A_ineq, b_ineq: Inequality constraints A_ineq @ x <= b_ineq.
+        lower_bounds, upper_bounds: Variable bounds.
+    """
+    return solve_quadratic_program(variables, Q, c, A_eq, b_eq, A_ineq, b_ineq, lower_bounds, upper_bounds)
+
+
+@mcp.tool()
+def optimize_portfolio_variance(
+    assets: list[str],
+    expected_returns: list[float],
+    covariance_matrix: list[list[float]],
+    target_return: float | None = None,
+    risk_aversion: float | None = None,
+    risk_free_rate: float = 0.0,
+    max_weight: float = 1.0,
+    min_weight: float = 0.0,
+) -> PortfolioQPResult:
+    """
+    Solve Markowitz mean-variance portfolio optimization.
+
+    Args:
+        assets: Asset names.
+        expected_returns: Expected return for each asset.
+        covariance_matrix: Covariance matrix of returns.
+        target_return: Minimize variance for this target return.
+        risk_aversion: Maximize return - risk_aversion * variance.
+        risk_free_rate: Risk-free rate for Sharpe ratio.
+        max_weight: Maximum weight per asset.
+        min_weight: Minimum weight per asset.
+    """
+    return optimize_portfolio_qp(
+        assets, expected_returns, covariance_matrix, target_return,
+        risk_aversion, risk_free_rate, max_weight, min_weight
     )
 
 

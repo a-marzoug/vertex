@@ -48,6 +48,8 @@ from vertex.tools.stochastic import (
     solve_quadratic_assignment,
     find_steiner_tree,
     optimize_multi_echelon_inventory,
+    solve_quadratic_program,
+    optimize_portfolio_qp,
 )
 
 __all__ = [
@@ -98,4 +100,6 @@ __all__ = [
     "solve_quadratic_assignment",
     "find_steiner_tree",
     "optimize_multi_echelon_inventory",
+    "solve_quadratic_program",
+    "optimize_portfolio_qp",
 ]

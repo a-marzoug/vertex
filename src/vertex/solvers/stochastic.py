@@ -1075,3 +1075,147 @@ def solve_multi_echelon_inventory(
         expected_fill_rates=fill_rates,
         solve_time=round(elapsed, 4)
     )
+
+
+def solve_qp(
+    variables: list[str],
+    Q: list[list[float]],  # Quadratic term (n x n)
+    c: list[float],  # Linear term
+    A_eq: list[list[float]] | None = None,
+    b_eq: list[float] | None = None,
+    A_ineq: list[list[float]] | None = None,
+    b_ineq: list[float] | None = None,
+    lower_bounds: list[float] | None = None,
+    upper_bounds: list[float] | None = None,
+) -> "QPResult":
+    """
+    Solve Quadratic Programming: min 0.5 * x'Qx + c'x
+    subject to A_eq @ x = b_eq, A_ineq @ x <= b_ineq, lb <= x <= ub
+    """
+    from vertex.models.stochastic import QPResult
+    import cvxpy as cp
+    import numpy as np
+    import time
+    
+    start = time.time()
+    n = len(variables)
+    
+    x = cp.Variable(n)
+    Q_np = np.array(Q)
+    c_np = np.array(c)
+    
+    # Objective: 0.5 * x'Qx + c'x
+    objective = 0.5 * cp.quad_form(x, Q_np) + c_np @ x
+    
+    constraints = []
+    
+    if A_eq is not None and b_eq is not None:
+        constraints.append(np.array(A_eq) @ x == np.array(b_eq))
+    
+    if A_ineq is not None and b_ineq is not None:
+        constraints.append(np.array(A_ineq) @ x <= np.array(b_ineq))
+    
+    if lower_bounds is not None:
+        constraints.append(x >= np.array(lower_bounds))
+    
+    if upper_bounds is not None:
+        constraints.append(x <= np.array(upper_bounds))
+    
+    prob = cp.Problem(cp.Minimize(objective), constraints)
+    
+    try:
+        prob.solve()
+        elapsed = time.time() - start
+        
+        if prob.status not in [cp.OPTIMAL, cp.OPTIMAL_INACCURATE]:
+            return QPResult(status="INFEASIBLE", objective_value=0, variable_values={}, solve_time=elapsed)
+        
+        return QPResult(
+            status="OPTIMAL",
+            objective_value=round(prob.value, 6),
+            variable_values={variables[i]: round(float(x.value[i]), 6) for i in range(n)},
+            solve_time=round(elapsed, 4)
+        )
+    except Exception as e:
+        return QPResult(status=f"ERROR: {e}", objective_value=0, variable_values={}, solve_time=time.time() - start)
+
+
+def solve_portfolio_qp(
+    assets: list[str],
+    expected_returns: list[float],
+    covariance_matrix: list[list[float]],
+    target_return: float | None = None,
+    risk_aversion: float | None = None,
+    risk_free_rate: float = 0.0,
+    max_weight: float = 1.0,
+    min_weight: float = 0.0,
+) -> "PortfolioQPResult":
+    """
+    Solve Markowitz portfolio optimization with covariance.
+    
+    Either minimize variance for target return, or maximize utility = return - risk_aversion * variance.
+    """
+    from vertex.models.stochastic import PortfolioQPResult
+    import cvxpy as cp
+    import numpy as np
+    import time
+    
+    start = time.time()
+    n = len(assets)
+    
+    w = cp.Variable(n)
+    ret = np.array(expected_returns)
+    cov = np.array(covariance_matrix)
+    
+    portfolio_return = ret @ w
+    portfolio_variance = cp.quad_form(w, cov)
+    
+    constraints = [
+        cp.sum(w) == 1,  # Fully invested
+        w >= min_weight,
+        w <= max_weight,
+    ]
+    
+    if target_return is not None:
+        # Minimize variance subject to target return
+        constraints.append(portfolio_return >= target_return)
+        objective = cp.Minimize(portfolio_variance)
+    elif risk_aversion is not None:
+        # Maximize return - risk_aversion * variance
+        objective = cp.Maximize(portfolio_return - risk_aversion * portfolio_variance)
+    else:
+        # Default: minimize variance (minimum variance portfolio)
+        objective = cp.Minimize(portfolio_variance)
+    
+    prob = cp.Problem(objective, constraints)
+    
+    try:
+        prob.solve()
+        elapsed = time.time() - start
+        
+        if prob.status not in [cp.OPTIMAL, cp.OPTIMAL_INACCURATE]:
+            return PortfolioQPResult(
+                status="INFEASIBLE", expected_return=0, portfolio_variance=0,
+                portfolio_std=0, sharpe_ratio=None, weights={}, solve_time=elapsed
+            )
+        
+        weights = {assets[i]: round(float(w.value[i]), 6) for i in range(n)}
+        exp_ret = float(ret @ w.value)
+        var = float(w.value @ cov @ w.value)
+        std = var ** 0.5
+        sharpe = (exp_ret - risk_free_rate) / std if std > 0 else None
+        
+        return PortfolioQPResult(
+            status="OPTIMAL",
+            expected_return=round(exp_ret, 6),
+            portfolio_variance=round(var, 6),
+            portfolio_std=round(std, 6),
+            sharpe_ratio=round(sharpe, 4) if sharpe else None,
+            weights=weights,
+            solve_time=round(elapsed, 4)
+        )
+    except Exception as e:
+        return PortfolioQPResult(
+            status=f"ERROR: {e}", expected_return=0, portfolio_variance=0,
+            portfolio_std=0, sharpe_ratio=None, weights={}, solve_time=time.time() - start
+        )

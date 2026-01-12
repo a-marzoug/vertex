@@ -150,3 +150,22 @@ class MultiEchelonResult(BaseModel):
     base_stock_levels: dict[str, float]  # location -> stock level
     expected_fill_rates: dict[str, float]
     solve_time: float
+
+
+class QPResult(BaseModel):
+    """Result of Quadratic Programming."""
+    status: str
+    objective_value: float
+    variable_values: dict[str, float]
+    solve_time: float
+
+
+class PortfolioQPResult(BaseModel):
+    """Result of portfolio optimization with covariance."""
+    status: str
+    expected_return: float
+    portfolio_variance: float
+    portfolio_std: float
+    sharpe_ratio: float | None
+    weights: dict[str, float]
+    solve_time: float

@@ -9,7 +9,9 @@ from vertex.models.stochastic import (
     MultiEchelonResult,
     NetworkDesignResult,
     NewsvendorResult,
+    PortfolioQPResult,
     QAPResult,
+    QPResult,
     QueueMetrics,
     RobustResult,
     Scenario,
@@ -449,4 +451,69 @@ def optimize_multi_echelon_inventory(
     from vertex.solvers.stochastic import solve_multi_echelon_inventory
     return solve_multi_echelon_inventory(
         locations, parent, demands, lead_times, holding_costs, service_levels
+    )
+
+
+def solve_quadratic_program(
+    variables: list[str],
+    Q: list[list[float]],
+    c: list[float],
+    A_eq: list[list[float]] | None = None,
+    b_eq: list[float] | None = None,
+    A_ineq: list[list[float]] | None = None,
+    b_ineq: list[float] | None = None,
+    lower_bounds: list[float] | None = None,
+    upper_bounds: list[float] | None = None,
+) -> "QPResult":
+    """
+    Solve Quadratic Programming problem.
+    
+    Minimizes: 0.5 * x'Qx + c'x
+    Subject to: A_eq @ x = b_eq, A_ineq @ x <= b_ineq, lb <= x <= ub
+    
+    Args:
+        variables: Variable names
+        Q: Quadratic coefficient matrix (n x n), must be positive semi-definite
+        c: Linear coefficient vector
+        A_eq, b_eq: Equality constraints
+        A_ineq, b_ineq: Inequality constraints
+        lower_bounds, upper_bounds: Variable bounds
+    
+    Returns:
+        Optimal solution and objective value
+    """
+    from vertex.solvers.stochastic import solve_qp
+    return solve_qp(variables, Q, c, A_eq, b_eq, A_ineq, b_ineq, lower_bounds, upper_bounds)
+
+
+def optimize_portfolio_qp(
+    assets: list[str],
+    expected_returns: list[float],
+    covariance_matrix: list[list[float]],
+    target_return: float | None = None,
+    risk_aversion: float | None = None,
+    risk_free_rate: float = 0.0,
+    max_weight: float = 1.0,
+    min_weight: float = 0.0,
+) -> "PortfolioQPResult":
+    """
+    Solve Markowitz mean-variance portfolio optimization.
+    
+    Args:
+        assets: Asset names
+        expected_returns: Expected return for each asset
+        covariance_matrix: Covariance matrix of returns
+        target_return: If set, minimize variance for this target return
+        risk_aversion: If set, maximize return - risk_aversion * variance
+        risk_free_rate: Risk-free rate for Sharpe ratio calculation
+        max_weight: Maximum weight per asset (default 1.0)
+        min_weight: Minimum weight per asset (default 0.0, no short selling)
+    
+    Returns:
+        Optimal portfolio weights, expected return, variance, and Sharpe ratio
+    """
+    from vertex.solvers.stochastic import solve_portfolio_qp
+    return solve_portfolio_qp(
+        assets, expected_returns, covariance_matrix, target_return,
+        risk_aversion, risk_free_rate, max_weight, min_weight
     )
