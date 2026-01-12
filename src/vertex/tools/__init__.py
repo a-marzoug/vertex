@@ -32,6 +32,11 @@ from vertex.tools.scheduling import (
     compute_vrp_tw,
 )
 from vertex.tools.sensitivity import SensitivityReport, analyze_sensitivity
+from vertex.tools.stochastic import (
+    compute_lot_sizing,
+    compute_newsvendor,
+    compute_two_stage_stochastic,
+)
 
 __all__ = [
     "analyze_sensitivity",
@@ -66,4 +71,7 @@ __all__ = [
     "solve_sudoku",
     "SudokuResult",
     "WhatIfResult",
+    "compute_lot_sizing",
+    "compute_newsvendor",
+    "compute_two_stage_stochastic",
 ]

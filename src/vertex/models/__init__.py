@@ -36,6 +36,12 @@ from vertex.models.scheduling import (
     VRPResult,
     VRPRoute,
 )
+from vertex.models.stochastic import (
+    LotSizingResult,
+    NewsvendorResult,
+    Scenario,
+    TwoStageResult,
+)
 
 __all__ = [
     "Arc",
@@ -66,4 +72,8 @@ __all__ = [
     "Variable",
     "VRPResult",
     "VRPRoute",
+    "LotSizingResult",
+    "NewsvendorResult",
+    "Scenario",
+    "TwoStageResult",
 ]

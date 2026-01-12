@@ -36,6 +36,12 @@ from vertex.tools.scheduling import (
     compute_vrp_tw,
 )
 from vertex.tools.sensitivity import SensitivityReport, analyze_sensitivity
+from vertex.tools.stochastic import (
+    compute_lot_sizing,
+    compute_newsvendor,
+    compute_two_stage_stochastic,
+)
+from vertex.models.stochastic import LotSizingResult, NewsvendorResult, TwoStageResult
 from vertex.tools.templates.assignment import AssignmentResult
 from vertex.tools.templates.assignment import optimize_assignment as _optimize_assignment
 from vertex.tools.templates.diet import DietResult
@@ -717,6 +723,77 @@ def solve_cutting_stock(
         time_limit_seconds: Solver time limit.
     """
     return compute_cutting_stock(items, lengths, demands, stock_length, max_stock, time_limit_seconds)
+
+
+# Stochastic & Dynamic Optimization Tools
+@mcp.tool()
+def solve_two_stage_stochastic(
+    products: list[str],
+    scenarios: list[dict],
+    production_costs: dict[str, float],
+    shortage_costs: dict[str, float],
+    holding_costs: dict[str, float],
+    capacity: dict[str, float] | None = None,
+) -> TwoStageResult:
+    """
+    Solve two-stage stochastic program for production under demand uncertainty.
+
+    First stage: Decide production before demand is known.
+    Second stage: Handle shortages/surpluses after demand realizes.
+
+    Args:
+        products: Product names.
+        scenarios: List of {name, probability, demand: {product: qty}}.
+        production_costs: Cost per unit to produce.
+        shortage_costs: Penalty per unit of unmet demand.
+        holding_costs: Cost per unit of excess inventory.
+        capacity: Optional production capacity limits.
+    """
+    return compute_two_stage_stochastic(products, scenarios, production_costs, shortage_costs, holding_costs, capacity)
+
+
+@mcp.tool()
+def solve_newsvendor(
+    selling_price: float,
+    cost: float,
+    salvage_value: float,
+    mean_demand: float,
+    std_demand: float,
+) -> NewsvendorResult:
+    """
+    Solve newsvendor (single-period stochastic inventory) problem.
+
+    Classic model for perishable goods: how much to order when demand is uncertain.
+
+    Args:
+        selling_price: Revenue per unit sold.
+        cost: Purchase/production cost per unit.
+        salvage_value: Value recovered per unsold unit.
+        mean_demand: Expected demand (normal distribution).
+        std_demand: Standard deviation of demand.
+    """
+    return compute_newsvendor(selling_price, cost, salvage_value, mean_demand, std_demand)
+
+
+@mcp.tool()
+def solve_lot_sizing(
+    demands: list[float],
+    setup_cost: float,
+    holding_cost: float,
+    production_cost: float = 0,
+) -> LotSizingResult:
+    """
+    Solve dynamic lot sizing using Wagner-Whitin algorithm.
+
+    Determines when and how much to produce over multiple periods.
+
+    Args:
+        demands: Demand for each period.
+        setup_cost: Fixed cost when production occurs.
+        holding_cost: Cost per unit per period in inventory.
+        production_cost: Variable cost per unit (optional).
+    """
+    return compute_lot_sizing(demands, setup_cost, holding_cost, production_cost)
 
 
 # Prompts

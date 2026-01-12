@@ -19,6 +19,11 @@ from vertex.solvers.scheduling import (
     solve_vrp,
     solve_vrp_time_windows,
 )
+from vertex.solvers.stochastic import (
+    solve_lot_sizing,
+    solve_newsvendor,
+    solve_two_stage_stochastic,
+)
 
 __all__ = [
     "LinearSolver",
@@ -36,4 +41,7 @@ __all__ = [
     "solve_tsp",
     "solve_vrp",
     "solve_vrp_time_windows",
+    "solve_lot_sizing",
+    "solve_newsvendor",
+    "solve_two_stage_stochastic",
 ]
