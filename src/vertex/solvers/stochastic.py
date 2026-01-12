@@ -832,3 +832,246 @@ def solve_network_design(
         flows=flows,
         solve_time=round(elapsed, 4)
     )
+
+
+def solve_qap(
+    facilities: list[str],
+    locations: list[str],
+    flow_matrix: dict[str, dict[str, float]],
+    distance_matrix: dict[str, dict[str, float]],
+    time_limit_seconds: int = 30,
+) -> "QAPResult":
+    """
+    Solve Quadratic Assignment Problem - assign facilities to locations
+    minimizing total flow * distance.
+    """
+    from vertex.models.stochastic import QAPResult
+    from ortools.sat.python import cp_model
+    import time
+    
+    start = time.time()
+    model = cp_model.CpModel()
+    
+    n = len(facilities)
+    if n != len(locations):
+        return QAPResult(status="ERROR", total_cost=0, assignment={}, solve_time=0)
+    
+    # x[i][j] = 1 if facility i assigned to location j
+    x = {}
+    for i, f in enumerate(facilities):
+        for j, l in enumerate(locations):
+            x[(i, j)] = model.new_bool_var(f"x_{i}_{j}")
+    
+    # Each facility to exactly one location
+    for i in range(n):
+        model.add_exactly_one(x[(i, j)] for j in range(n))
+    
+    # Each location gets exactly one facility
+    for j in range(n):
+        model.add_exactly_one(x[(i, j)] for i in range(n))
+    
+    # Linearize quadratic objective using auxiliary variables
+    # cost = sum_{i,k,j,l} flow[i][k] * dist[j][l] * x[i][j] * x[k][l]
+    obj_terms = []
+    for i, fi in enumerate(facilities):
+        for k, fk in enumerate(facilities):
+            if fi == fk:
+                continue
+            flow = flow_matrix.get(fi, {}).get(fk, 0)
+            if flow == 0:
+                continue
+            for j, lj in enumerate(locations):
+                for l, ll in enumerate(locations):
+                    if lj == ll:
+                        continue
+                    dist = distance_matrix.get(lj, {}).get(ll, 0)
+                    if dist == 0:
+                        continue
+                    # x[i][j] * x[k][l] linearization
+                    y = model.new_bool_var(f"y_{i}_{j}_{k}_{l}")
+                    model.add_implication(y, x[(i, j)])
+                    model.add_implication(y, x[(k, l)])
+                    model.add_bool_or([y, x[(i, j)].negated(), x[(k, l)].negated()])
+                    obj_terms.append(int(flow * dist) * y)
+    
+    model.minimize(sum(obj_terms))
+    
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = time_limit_seconds
+    status = solver.solve(model)
+    elapsed = time.time() - start
+    
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return QAPResult(status="INFEASIBLE", total_cost=0, assignment={}, solve_time=elapsed)
+    
+    assignment = {}
+    for i, f in enumerate(facilities):
+        for j, l in enumerate(locations):
+            if solver.value(x[(i, j)]):
+                assignment[f] = l
+    
+    return QAPResult(
+        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        total_cost=solver.objective_value,
+        assignment=assignment,
+        solve_time=round(elapsed, 4)
+    )
+
+
+def solve_steiner_tree(
+    nodes: list[str],
+    edges: list[dict],
+    terminals: list[str],
+    time_limit_seconds: int = 30,
+) -> "SteinerTreeResult":
+    """
+    Solve Steiner Tree - connect terminal nodes with minimum cost,
+    optionally using non-terminal (Steiner) nodes.
+    """
+    from vertex.models.stochastic import SteinerTreeResult
+    from ortools.sat.python import cp_model
+    import time
+    
+    start = time.time()
+    model = cp_model.CpModel()
+    
+    # Create edge variables
+    edge_vars = {}
+    edge_weights = {}
+    for e in edges:
+        key = (e["source"], e["target"])
+        edge_vars[key] = model.new_bool_var(f"e_{key}")
+        edge_weights[key] = e["weight"]
+        # Undirected - add reverse
+        rev_key = (e["target"], e["source"])
+        edge_vars[rev_key] = edge_vars[key]
+        edge_weights[rev_key] = e["weight"]
+    
+    # Node usage variables
+    node_vars = {n: model.new_bool_var(f"n_{n}") for n in nodes}
+    
+    # Terminals must be used
+    for t in terminals:
+        model.add(node_vars[t] == 1)
+    
+    # If edge used, both endpoints must be used
+    for (u, v), var in edge_vars.items():
+        model.add_implication(var, node_vars[u])
+        model.add_implication(var, node_vars[v])
+    
+    # Connectivity: use flow-based formulation
+    # Pick first terminal as root, flow from root to all other terminals
+    if len(terminals) >= 2:
+        root = terminals[0]
+        for t in terminals[1:]:
+            # Flow variable for path to terminal t
+            flow = {}
+            for (u, v) in edge_vars:
+                flow[(u, v, t)] = model.new_bool_var(f"flow_{u}_{v}_{t}")
+                # Flow only if edge is used
+                model.add_implication(flow[(u, v, t)], edge_vars[(u, v)])
+            
+            # Flow conservation
+            for n in nodes:
+                inflow = sum(flow.get((u, n, t), model.new_constant(0)) 
+                            for u in nodes if (u, n) in edge_vars)
+                outflow = sum(flow.get((n, v, t), model.new_constant(0)) 
+                             for v in nodes if (n, v) in edge_vars)
+                if n == root:
+                    model.add(outflow - inflow == 1)
+                elif n == t:
+                    model.add(inflow - outflow == 1)
+                else:
+                    model.add(inflow == outflow)
+    
+    # Minimize total edge weight (count each undirected edge once)
+    seen = set()
+    obj_terms = []
+    for (u, v), var in edge_vars.items():
+        if (v, u) not in seen:
+            obj_terms.append(edge_weights[(u, v)] * var)
+            seen.add((u, v))
+    model.minimize(sum(obj_terms))
+    
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = time_limit_seconds
+    status = solver.solve(model)
+    elapsed = time.time() - start
+    
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return SteinerTreeResult(
+            status="INFEASIBLE", total_weight=0, edges=[], steiner_nodes=[], solve_time=elapsed
+        )
+    
+    result_edges = []
+    seen = set()
+    for (u, v), var in edge_vars.items():
+        if solver.value(var) and (v, u) not in seen:
+            result_edges.append((u, v, edge_weights[(u, v)]))
+            seen.add((u, v))
+    
+    steiner = [n for n in nodes if solver.value(node_vars[n]) and n not in terminals]
+    
+    return SteinerTreeResult(
+        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        total_weight=solver.objective_value,
+        edges=result_edges,
+        steiner_nodes=steiner,
+        solve_time=round(elapsed, 4)
+    )
+
+
+def solve_multi_echelon_inventory(
+    locations: list[str],
+    parent: dict[str, str | None],
+    demands: dict[str, float],
+    lead_times: dict[str, float],
+    holding_costs: dict[str, float],
+    service_levels: dict[str, float],
+) -> "MultiEchelonResult":
+    """
+    Solve multi-echelon inventory - compute base-stock levels.
+    Uses guaranteed service model approximation.
+    """
+    from vertex.models.stochastic import MultiEchelonResult
+    from scipy import stats
+    import time
+    
+    start = time.time()
+    
+    # Compute echelon stock levels using safety stock formula
+    # S = mean_demand * lead_time + z * std_demand * sqrt(lead_time)
+    base_stock = {}
+    fill_rates = {}
+    
+    # Assume demand std = 0.3 * mean (coefficient of variation)
+    cv = 0.3
+    
+    for loc in locations:
+        demand = demands.get(loc, 0)
+        lt = lead_times.get(loc, 1)
+        sl = service_levels.get(loc, 0.95)
+        
+        if demand == 0:
+            base_stock[loc] = 0
+            fill_rates[loc] = 1.0
+            continue
+        
+        z = stats.norm.ppf(sl)
+        std_demand = cv * demand
+        
+        # Base stock = expected demand during lead time + safety stock
+        mean_lt_demand = demand * lt
+        safety_stock = z * std_demand * (lt ** 0.5)
+        base_stock[loc] = round(mean_lt_demand + safety_stock, 2)
+        fill_rates[loc] = round(sl, 4)
+    
+    elapsed = time.time() - start
+    
+    return MultiEchelonResult(
+        status="OPTIMAL",
+        total_cost=round(sum(base_stock[l] * holding_costs.get(l, 1) for l in locations), 2),
+        base_stock_levels=base_stock,
+        expected_fill_rates=fill_rates,
+        solve_time=round(elapsed, 4)
+    )

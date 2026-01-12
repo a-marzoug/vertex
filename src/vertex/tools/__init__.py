@@ -45,6 +45,9 @@ from vertex.tools.stochastic import (
     solve_chance_constrained_production,
     pack_rectangles_2d,
     design_network,
+    solve_quadratic_assignment,
+    find_steiner_tree,
+    optimize_multi_echelon_inventory,
 )
 
 __all__ = [
@@ -92,4 +95,7 @@ __all__ = [
     "solve_chance_constrained_production",
     "pack_rectangles_2d",
     "design_network",
+    "solve_quadratic_assignment",
+    "find_steiner_tree",
+    "optimize_multi_echelon_inventory",
 ]

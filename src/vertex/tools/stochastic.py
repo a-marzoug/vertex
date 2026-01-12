@@ -6,11 +6,14 @@ from vertex.models.stochastic import (
     CrewScheduleResult,
     LotSizingResult,
     MonteCarloResult,
+    MultiEchelonResult,
     NetworkDesignResult,
     NewsvendorResult,
+    QAPResult,
     QueueMetrics,
     RobustResult,
     Scenario,
+    SteinerTreeResult,
     TwoStageResult,
 )
 from vertex.solvers.stochastic import (
@@ -367,4 +370,83 @@ def design_network(
     var = {tuple(k.split("->")):v for k,v in arc_variable_costs.items()}
     return solve_network_design(
         nodes, potential_arcs, commodities, fixed, caps, var, time_limit_seconds
+    )
+
+
+def solve_quadratic_assignment(
+    facilities: list[str],
+    locations: list[str],
+    flow_matrix: dict[str, dict[str, float]],
+    distance_matrix: dict[str, dict[str, float]],
+    time_limit_seconds: int = 30,
+) -> "QAPResult":
+    """
+    Solve Quadratic Assignment Problem - assign facilities to locations.
+    
+    Minimizes total cost = sum of flow[i][k] * distance[j][l] for all pairs
+    where facility i is at location j and facility k is at location l.
+    
+    Args:
+        facilities: Facility names
+        locations: Location names (same count as facilities)
+        flow_matrix: flow_matrix[f1][f2] = flow between facilities
+        distance_matrix: distance_matrix[l1][l2] = distance between locations
+        time_limit_seconds: Solver time limit
+    
+    Returns:
+        Facility-to-location assignment minimizing flow*distance
+    """
+    from vertex.solvers.stochastic import solve_qap
+    return solve_qap(facilities, locations, flow_matrix, distance_matrix, time_limit_seconds)
+
+
+def find_steiner_tree(
+    nodes: list[str],
+    edges: list[dict],
+    terminals: list[str],
+    time_limit_seconds: int = 30,
+) -> "SteinerTreeResult":
+    """
+    Solve Steiner Tree - connect terminal nodes with minimum total edge weight.
+    
+    May use non-terminal (Steiner) nodes if it reduces total cost.
+    
+    Args:
+        nodes: All node names
+        edges: List of {source, target, weight}
+        terminals: Nodes that must be connected
+        time_limit_seconds: Solver time limit
+    
+    Returns:
+        Minimum weight tree connecting all terminals
+    """
+    from vertex.solvers.stochastic import solve_steiner_tree
+    return solve_steiner_tree(nodes, edges, terminals, time_limit_seconds)
+
+
+def optimize_multi_echelon_inventory(
+    locations: list[str],
+    parent: dict[str, str | None],
+    demands: dict[str, float],
+    lead_times: dict[str, float],
+    holding_costs: dict[str, float],
+    service_levels: dict[str, float],
+) -> "MultiEchelonResult":
+    """
+    Optimize multi-echelon inventory - compute base-stock levels.
+    
+    Args:
+        locations: Location names (warehouses, DCs, stores)
+        parent: parent[loc] = upstream location (None for top)
+        demands: Mean demand per period at each location
+        lead_times: Replenishment lead time for each location
+        holding_costs: Holding cost per unit at each location
+        service_levels: Target service level (fill rate) per location
+    
+    Returns:
+        Base-stock levels and expected fill rates
+    """
+    from vertex.solvers.stochastic import solve_multi_echelon_inventory
+    return solve_multi_echelon_inventory(
+        locations, parent, demands, lead_times, holding_costs, service_levels
     )

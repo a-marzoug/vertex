@@ -49,11 +49,14 @@ from vertex.tools.stochastic import (
     solve_chance_constrained_production,
     pack_rectangles_2d,
     design_network,
+    solve_quadratic_assignment,
+    find_steiner_tree,
+    optimize_multi_echelon_inventory,
 )
 from vertex.models.stochastic import (
     BinPacking2DResult, ChanceConstrainedResult, CrewScheduleResult,
-    LotSizingResult, MonteCarloResult, NetworkDesignResult,
-    NewsvendorResult, QueueMetrics, RobustResult, TwoStageResult
+    LotSizingResult, MonteCarloResult, MultiEchelonResult, NetworkDesignResult,
+    NewsvendorResult, QAPResult, QueueMetrics, RobustResult, SteinerTreeResult, TwoStageResult
 )
 from vertex.models.scheduling import FlowShopResult, ParallelMachineResult
 from vertex.tools.scheduling import compute_flow_shop, compute_parallel_machines
@@ -1091,6 +1094,77 @@ def solve_network_design(
     return design_network(
         nodes, potential_arcs, commodities, arc_fixed_costs,
         arc_capacities, arc_variable_costs, time_limit_seconds
+    )
+
+
+@mcp.tool()
+def solve_quadratic_assignment_problem(
+    facilities: list[str],
+    locations: list[str],
+    flow_matrix: dict[str, dict[str, float]],
+    distance_matrix: dict[str, dict[str, float]],
+    time_limit_seconds: int = 30,
+) -> QAPResult:
+    """
+    Solve Quadratic Assignment Problem - assign facilities to locations.
+
+    Minimizes total flow * distance cost.
+
+    Args:
+        facilities: Facility names.
+        locations: Location names (same count as facilities).
+        flow_matrix: flow_matrix[f1][f2] = flow between facilities.
+        distance_matrix: distance_matrix[l1][l2] = distance between locations.
+        time_limit_seconds: Solver time limit.
+    """
+    return solve_quadratic_assignment(
+        facilities, locations, flow_matrix, distance_matrix, time_limit_seconds
+    )
+
+
+@mcp.tool()
+def solve_steiner_tree(
+    nodes: list[str],
+    edges: list[dict],
+    terminals: list[str],
+    time_limit_seconds: int = 30,
+) -> SteinerTreeResult:
+    """
+    Solve Steiner Tree - connect terminal nodes with minimum edge weight.
+
+    May use non-terminal (Steiner) nodes if it reduces cost.
+
+    Args:
+        nodes: All node names.
+        edges: List of {source, target, weight}.
+        terminals: Nodes that must be connected.
+        time_limit_seconds: Solver time limit.
+    """
+    return find_steiner_tree(nodes, edges, terminals, time_limit_seconds)
+
+
+@mcp.tool()
+def optimize_multi_echelon(
+    locations: list[str],
+    parent: dict[str, str | None],
+    demands: dict[str, float],
+    lead_times: dict[str, float],
+    holding_costs: dict[str, float],
+    service_levels: dict[str, float],
+) -> MultiEchelonResult:
+    """
+    Optimize multi-echelon inventory - compute base-stock levels.
+
+    Args:
+        locations: Location names (warehouses, DCs, stores).
+        parent: parent[loc] = upstream location (None for top).
+        demands: Mean demand per period at each location.
+        lead_times: Replenishment lead time for each location.
+        holding_costs: Holding cost per unit at each location.
+        service_levels: Target service level per location.
+    """
+    return optimize_multi_echelon_inventory(
+        locations, parent, demands, lead_times, holding_costs, service_levels
     )
 
 

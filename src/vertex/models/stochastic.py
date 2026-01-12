@@ -124,3 +124,29 @@ class NetworkDesignResult(BaseModel):
     opened_arcs: list[tuple[str, str]]
     flows: dict[str, dict[str, float]]
     solve_time: float
+
+
+class QAPResult(BaseModel):
+    """Result of Quadratic Assignment Problem."""
+    status: str
+    total_cost: float
+    assignment: dict[str, str]  # facility -> location
+    solve_time: float
+
+
+class SteinerTreeResult(BaseModel):
+    """Result of Steiner Tree problem."""
+    status: str
+    total_weight: float
+    edges: list[tuple[str, str, float]]  # (node1, node2, weight)
+    steiner_nodes: list[str]  # non-terminal nodes used
+    solve_time: float
+
+
+class MultiEchelonResult(BaseModel):
+    """Result of multi-echelon inventory optimization."""
+    status: str
+    total_cost: float
+    base_stock_levels: dict[str, float]  # location -> stock level
+    expected_fill_rates: dict[str, float]
+    solve_time: float
