@@ -42,6 +42,9 @@ from vertex.tools.stochastic import (
     simulate_newsvendor_monte_carlo,
     simulate_production_monte_carlo,
     schedule_crew,
+    solve_chance_constrained_production,
+    pack_rectangles_2d,
+    design_network,
 )
 
 __all__ = [
@@ -86,4 +89,7 @@ __all__ = [
     "simulate_newsvendor_monte_carlo",
     "simulate_production_monte_carlo",
     "schedule_crew",
+    "solve_chance_constrained_production",
+    "pack_rectangles_2d",
+    "design_network",
 ]

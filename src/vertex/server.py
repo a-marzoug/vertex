@@ -46,8 +46,15 @@ from vertex.tools.stochastic import (
     simulate_newsvendor_monte_carlo,
     simulate_production_monte_carlo,
     schedule_crew,
+    solve_chance_constrained_production,
+    pack_rectangles_2d,
+    design_network,
 )
-from vertex.models.stochastic import CrewScheduleResult, LotSizingResult, MonteCarloResult, NewsvendorResult, QueueMetrics, RobustResult, TwoStageResult
+from vertex.models.stochastic import (
+    BinPacking2DResult, ChanceConstrainedResult, CrewScheduleResult,
+    LotSizingResult, MonteCarloResult, NetworkDesignResult,
+    NewsvendorResult, QueueMetrics, RobustResult, TwoStageResult
+)
 from vertex.models.scheduling import FlowShopResult, ParallelMachineResult
 from vertex.tools.scheduling import compute_flow_shop, compute_parallel_machines
 from vertex.tools.templates.assignment import AssignmentResult
@@ -1000,6 +1007,90 @@ def solve_crew_schedule(
     return schedule_crew(
         workers, days, shifts, requirements, worker_availability,
         costs, max_shifts_per_worker, min_rest_between_shifts, time_limit_seconds
+    )
+
+
+@mcp.tool()
+def solve_chance_constrained(
+    products: list[str],
+    mean_demands: dict[str, float],
+    std_demands: dict[str, float],
+    production_costs: dict[str, float],
+    selling_prices: dict[str, float],
+    service_level: float = 0.95,
+    capacity: dict[str, float] | None = None,
+) -> ChanceConstrainedResult:
+    """
+    Solve chance-constrained production planning.
+
+    Ensures P(production >= demand) >= service_level.
+
+    Args:
+        products: Product names.
+        mean_demands: Expected demand per product.
+        std_demands: Demand std dev per product.
+        production_costs: Cost per unit produced.
+        selling_prices: Revenue per unit sold.
+        service_level: Required probability (default 0.95).
+        capacity: Optional production limits.
+    """
+    return solve_chance_constrained_production(
+        products, mean_demands, std_demands, production_costs,
+        selling_prices, service_level, capacity
+    )
+
+
+@mcp.tool()
+def solve_2d_bin_packing(
+    rectangles: list[dict],
+    bin_width: int,
+    bin_height: int,
+    max_bins: int | None = None,
+    allow_rotation: bool = True,
+    time_limit_seconds: int = 30,
+) -> BinPacking2DResult:
+    """
+    Solve 2D bin packing - pack rectangles into bins.
+
+    Args:
+        rectangles: List of {name, width, height}.
+        bin_width: Width of each bin.
+        bin_height: Height of each bin.
+        max_bins: Maximum bins available.
+        allow_rotation: Allow 90-degree rotation.
+        time_limit_seconds: Solver time limit.
+    """
+    return pack_rectangles_2d(
+        rectangles, bin_width, bin_height, max_bins,
+        allow_rotation, time_limit_seconds
+    )
+
+
+@mcp.tool()
+def solve_network_design(
+    nodes: list[str],
+    potential_arcs: list[dict],
+    commodities: list[dict],
+    arc_fixed_costs: dict[str, float],
+    arc_capacities: dict[str, float],
+    arc_variable_costs: dict[str, float],
+    time_limit_seconds: int = 30,
+) -> NetworkDesignResult:
+    """
+    Solve capacitated network design - decide which arcs to build.
+
+    Args:
+        nodes: Node names.
+        potential_arcs: List of {source, target}.
+        commodities: List of {name, source, sink, demand}.
+        arc_fixed_costs: Fixed cost {"A->B": cost}.
+        arc_capacities: Capacity per arc.
+        arc_variable_costs: Cost per unit flow.
+        time_limit_seconds: Solver time limit.
+    """
+    return design_network(
+        nodes, potential_arcs, commodities, arc_fixed_costs,
+        arc_capacities, arc_variable_costs, time_limit_seconds
     )
 
 

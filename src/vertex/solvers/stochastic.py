@@ -537,3 +537,298 @@ def solve_crew_scheduling(
         coverage=coverage,
         solve_time=round(elapsed, 4)
     )
+
+
+def solve_chance_constrained(
+    products: list[str],
+    mean_demands: dict[str, float],
+    std_demands: dict[str, float],
+    production_costs: dict[str, float],
+    selling_prices: dict[str, float],
+    service_level: float = 0.95,
+    capacity: dict[str, float] | None = None,
+) -> "ChanceConstrainedResult":
+    """
+    Solve chance-constrained production planning.
+    
+    Ensures P(production >= demand) >= service_level for each product.
+    Uses deterministic equivalent with safety stock.
+    """
+    from vertex.models.stochastic import ChanceConstrainedResult
+    from scipy import stats
+    import time
+    
+    start = time.time()
+    solver = pywraplp.Solver.CreateSolver("GLOP")
+    if not solver:
+        return ChanceConstrainedResult(
+            status="ERROR", objective_value=0, variable_values={},
+            constraint_satisfaction_probs={}, solve_time=0
+        )
+    
+    # z-score for service level
+    z = stats.norm.ppf(service_level)
+    
+    # Production variables
+    prod = {p: solver.NumVar(0, capacity.get(p, solver.infinity()) if capacity else solver.infinity(), f"prod_{p}")
+            for p in products}
+    
+    # Chance constraint: prod >= mean + z * std (deterministic equivalent)
+    for p in products:
+        min_prod = mean_demands[p] + z * std_demands[p]
+        solver.Add(prod[p] >= min_prod)
+    
+    # Maximize expected profit (assuming we sell min(prod, demand))
+    # Simplified: profit = price * mean_demand - cost * prod (conservative)
+    profit = sum(
+        selling_prices[p] * mean_demands[p] - production_costs[p] * prod[p]
+        for p in products
+    )
+    solver.Maximize(profit)
+    
+    status = solver.Solve()
+    solve_time = time.time() - start
+    
+    if status != pywraplp.Solver.OPTIMAL:
+        return ChanceConstrainedResult(
+            status="INFEASIBLE", objective_value=0, variable_values={},
+            constraint_satisfaction_probs={}, solve_time=solve_time
+        )
+    
+    # Calculate actual satisfaction probabilities
+    probs = {}
+    for p in products:
+        q = prod[p].solution_value()
+        # P(demand <= q) = Phi((q - mean) / std)
+        prob = stats.norm.cdf((q - mean_demands[p]) / std_demands[p])
+        probs[p] = round(prob, 4)
+    
+    return ChanceConstrainedResult(
+        status="OPTIMAL",
+        objective_value=round(solver.Objective().Value(), 2),
+        variable_values={p: round(prod[p].solution_value(), 2) for p in products},
+        constraint_satisfaction_probs=probs,
+        solve_time=round(solve_time, 4)
+    )
+
+
+def solve_2d_bin_packing(
+    rectangles: list[dict],
+    bin_width: int,
+    bin_height: int,
+    max_bins: int | None = None,
+    allow_rotation: bool = True,
+    time_limit_seconds: int = 30,
+) -> "BinPacking2DResult":
+    """
+    Solve 2D bin packing using CP-SAT.
+    """
+    from vertex.models.stochastic import BinPacking2DResult, RectanglePlacement
+    from ortools.sat.python import cp_model
+    import time
+    
+    start = time.time()
+    model = cp_model.CpModel()
+    
+    n_rects = len(rectangles)
+    n_bins = max_bins or n_rects
+    
+    # Variables
+    x = {}  # x position
+    y = {}  # y position
+    b = {}  # bin assignment
+    r = {}  # rotation (if allowed)
+    w = {}  # effective width
+    h = {}  # effective height
+    
+    for i, rect in enumerate(rectangles):
+        x[i] = model.new_int_var(0, bin_width - 1, f"x_{i}")
+        y[i] = model.new_int_var(0, bin_height - 1, f"y_{i}")
+        b[i] = model.new_int_var(0, n_bins - 1, f"b_{i}")
+        
+        if allow_rotation:
+            r[i] = model.new_bool_var(f"r_{i}")
+            w[i] = model.new_int_var(1, max(rect["width"], rect["height"]), f"w_{i}")
+            h[i] = model.new_int_var(1, max(rect["width"], rect["height"]), f"h_{i}")
+            # If rotated, swap width/height
+            model.add(w[i] == rect["width"]).only_enforce_if(r[i].negated())
+            model.add(h[i] == rect["height"]).only_enforce_if(r[i].negated())
+            model.add(w[i] == rect["height"]).only_enforce_if(r[i])
+            model.add(h[i] == rect["width"]).only_enforce_if(r[i])
+        else:
+            w[i] = rect["width"]
+            h[i] = rect["height"]
+    
+    # Fit within bin
+    for i, rect in enumerate(rectangles):
+        if allow_rotation:
+            model.add(x[i] + w[i] <= bin_width)
+            model.add(y[i] + h[i] <= bin_height)
+        else:
+            model.add(x[i] + rect["width"] <= bin_width)
+            model.add(y[i] + rect["height"] <= bin_height)
+    
+    # No overlap within same bin
+    for i in range(n_rects):
+        for j in range(i + 1, n_rects):
+            # Either different bins or no overlap
+            same_bin = model.new_bool_var(f"same_{i}_{j}")
+            model.add(b[i] == b[j]).only_enforce_if(same_bin)
+            model.add(b[i] != b[j]).only_enforce_if(same_bin.negated())
+            
+            # If same bin, no overlap (one of 4 conditions)
+            left = model.new_bool_var(f"left_{i}_{j}")
+            right = model.new_bool_var(f"right_{i}_{j}")
+            below = model.new_bool_var(f"below_{i}_{j}")
+            above = model.new_bool_var(f"above_{i}_{j}")
+            
+            wi = w[i] if allow_rotation else rectangles[i]["width"]
+            hi = h[i] if allow_rotation else rectangles[i]["height"]
+            wj = w[j] if allow_rotation else rectangles[j]["width"]
+            hj = h[j] if allow_rotation else rectangles[j]["height"]
+            
+            model.add(x[i] + wi <= x[j]).only_enforce_if(left)
+            model.add(x[j] + wj <= x[i]).only_enforce_if(right)
+            model.add(y[i] + hi <= y[j]).only_enforce_if(below)
+            model.add(y[j] + hj <= y[i]).only_enforce_if(above)
+            
+            # If same bin, at least one separation must hold
+            model.add_bool_or([left, right, below, above, same_bin.negated()])
+    
+    # Minimize max bin used
+    max_bin = model.new_int_var(0, n_bins - 1, "max_bin")
+    model.add_max_equality(max_bin, [b[i] for i in range(n_rects)])
+    model.minimize(max_bin)
+    
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = time_limit_seconds
+    status = solver.solve(model)
+    elapsed = time.time() - start
+    
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        return BinPacking2DResult(
+            status="INFEASIBLE", num_bins_used=0, placements=[],
+            bin_utilization={}, solve_time=elapsed
+        )
+    
+    placements = []
+    bin_areas = {}
+    for i, rect in enumerate(rectangles):
+        bin_id = solver.value(b[i])
+        rotated = solver.value(r[i]) if allow_rotation else False
+        pw = solver.value(w[i]) if allow_rotation else rect["width"]
+        ph = solver.value(h[i]) if allow_rotation else rect["height"]
+        
+        placements.append(RectanglePlacement(
+            name=rect["name"], bin_id=bin_id,
+            x=solver.value(x[i]), y=solver.value(y[i]),
+            width=pw, height=ph, rotated=bool(rotated)
+        ))
+        bin_areas[bin_id] = bin_areas.get(bin_id, 0) + pw * ph
+    
+    num_bins = solver.value(max_bin) + 1
+    utilization = {bid: round(area / (bin_width * bin_height), 4) 
+                   for bid, area in bin_areas.items()}
+    
+    return BinPacking2DResult(
+        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        num_bins_used=num_bins,
+        placements=placements,
+        bin_utilization=utilization,
+        solve_time=round(elapsed, 4)
+    )
+
+
+def solve_network_design(
+    nodes: list[str],
+    potential_arcs: list[dict],
+    commodities: list[dict],
+    arc_fixed_costs: dict[tuple[str, str], float],
+    arc_capacities: dict[tuple[str, str], float],
+    arc_variable_costs: dict[tuple[str, str], float],
+    time_limit_seconds: int = 30,
+) -> "NetworkDesignResult":
+    """
+    Solve capacitated network design - decide which arcs to open.
+    """
+    from vertex.models.stochastic import NetworkDesignResult
+    from ortools.linear_solver import pywraplp
+    import time
+    
+    start = time.time()
+    solver = pywraplp.Solver.CreateSolver("SCIP")
+    if not solver:
+        return NetworkDesignResult(
+            status="ERROR", total_cost=0, opened_facilities=[],
+            opened_arcs=[], flows={}, solve_time=0
+        )
+    
+    # Arc opening variables (binary)
+    y = {}
+    for arc in potential_arcs:
+        key = (arc["source"], arc["target"])
+        y[key] = solver.BoolVar(f"y_{key}")
+    
+    # Flow variables per commodity
+    x = {}
+    for k, comm in enumerate(commodities):
+        for arc in potential_arcs:
+            key = (arc["source"], arc["target"])
+            x[(k, key)] = solver.NumVar(0, solver.infinity(), f"x_{k}_{key}")
+    
+    # Flow conservation
+    for k, comm in enumerate(commodities):
+        for node in nodes:
+            inflow = sum(x[(k, (arc["source"], arc["target"]))] 
+                        for arc in potential_arcs if arc["target"] == node)
+            outflow = sum(x[(k, (arc["source"], arc["target"]))] 
+                         for arc in potential_arcs if arc["source"] == node)
+            
+            if node == comm["source"]:
+                solver.Add(outflow - inflow == comm["demand"])
+            elif node == comm["sink"]:
+                solver.Add(inflow - outflow == comm["demand"])
+            else:
+                solver.Add(inflow == outflow)
+    
+    # Capacity constraints (only if arc is open)
+    for arc in potential_arcs:
+        key = (arc["source"], arc["target"])
+        cap = arc_capacities.get(key, 1e6)
+        total_flow = sum(x[(k, key)] for k in range(len(commodities)))
+        solver.Add(total_flow <= cap * y[key])
+    
+    # Objective: fixed costs + variable costs
+    fixed_cost = sum(arc_fixed_costs.get(key, 0) * y[key] for key in y)
+    var_cost = sum(
+        arc_variable_costs.get(key, 0) * x[(k, key)]
+        for k in range(len(commodities)) for key in y
+    )
+    solver.Minimize(fixed_cost + var_cost)
+    
+    solver.set_time_limit(time_limit_seconds * 1000)
+    status = solver.Solve()
+    elapsed = time.time() - start
+    
+    if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
+        return NetworkDesignResult(
+            status="INFEASIBLE", total_cost=0, opened_facilities=[],
+            opened_arcs=[], flows={}, solve_time=elapsed
+        )
+    
+    opened = [(s, t) for (s, t), var in y.items() if var.solution_value() > 0.5]
+    flows = {}
+    for k, comm in enumerate(commodities):
+        flows[comm["name"]] = {
+            f"{s}->{t}": round(x[(k, (s, t))].solution_value(), 2)
+            for (s, t) in y if x[(k, (s, t))].solution_value() > 0.01
+        }
+    
+    return NetworkDesignResult(
+        status="OPTIMAL" if status == pywraplp.Solver.OPTIMAL else "FEASIBLE",
+        total_cost=round(solver.Objective().Value(), 2),
+        opened_facilities=[],
+        opened_arcs=opened,
+        flows=flows,
+        solve_time=round(elapsed, 4)
+    )

@@ -78,3 +78,49 @@ class CrewScheduleResult(BaseModel):
     assignments: dict[str, list[str]]  # worker -> list of (day, shift)
     coverage: dict[str, dict[int, int]]  # shift -> day -> workers assigned
     solve_time: float
+
+
+class ChanceConstrainedResult(BaseModel):
+    """Result of chance-constrained optimization."""
+    status: str
+    objective_value: float
+    variable_values: dict[str, float]
+    constraint_satisfaction_probs: dict[str, float]
+    solve_time: float
+
+
+class Rectangle(BaseModel):
+    """A rectangle for 2D bin packing."""
+    name: str
+    width: int
+    height: int
+
+
+class RectanglePlacement(BaseModel):
+    """Placement of a rectangle in a bin."""
+    name: str
+    bin_id: int
+    x: int
+    y: int
+    width: int
+    height: int
+    rotated: bool
+
+
+class BinPacking2DResult(BaseModel):
+    """Result of 2D bin packing."""
+    status: str
+    num_bins_used: int
+    placements: list[RectanglePlacement]
+    bin_utilization: dict[int, float]
+    solve_time: float
+
+
+class NetworkDesignResult(BaseModel):
+    """Result of network design optimization."""
+    status: str
+    total_cost: float
+    opened_facilities: list[str]
+    opened_arcs: list[tuple[str, str]]
+    flows: dict[str, dict[str, float]]
+    solve_time: float
