@@ -77,13 +77,20 @@ def optimize_workforce_schedule(
     # Max shifts per worker
     if max_shifts_per_worker:
         for w in workers:
-            model.add(sum(x[(w, d, s)] for d in range(days) for s in shifts) <= max_shifts_per_worker)
+            model.add(
+                sum(x[(w, d, s)] for d in range(days) for s in shifts)
+                <= max_shifts_per_worker
+            )
 
     # Minimize cost
-    model.minimize(sum(
-        int(costs[w] * 1000) * x[(w, d, s)]
-        for w in workers for d in range(days) for s in shifts
-    ))
+    model.minimize(
+        sum(
+            int(costs[w] * 1000) * x[(w, d, s)]
+            for w in workers
+            for d in range(days)
+            for s in shifts
+        )
+    )
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_seconds
@@ -105,7 +112,9 @@ def optimize_workforce_schedule(
     total_cost = sum(costs[a.worker] for a in assignments)
 
     return WorkforceResult(
-        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == cp_model.OPTIMAL
+        else SolverStatus.FEASIBLE,
         assignments=sorted(assignments, key=lambda a: (a.day, a.shift, a.worker)),
         total_cost=total_cost,
         workers_used=len(workers_used),

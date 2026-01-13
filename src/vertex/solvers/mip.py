@@ -2,7 +2,13 @@
 
 from ortools.linear_solver import pywraplp
 
-from vertex.config import ConstraintSense, ObjectiveSense, SolverStatus, SolverType, VariableType
+from vertex.config import (
+    ConstraintSense,
+    ObjectiveSense,
+    SolverStatus,
+    SolverType,
+    VariableType,
+)
 from vertex.models.mip import MIPProblem, MIPSolution
 
 
@@ -26,14 +32,20 @@ class MIPSolver:
                 case VariableType.INTEGER:
                     var_map[var.name] = solver.IntVar(
                         int(var.lower_bound),
-                        int(var.upper_bound) if var.upper_bound != float("inf") else solver.infinity(),
+                        int(var.upper_bound)
+                        if var.upper_bound != float("inf")
+                        else solver.infinity(),
                         var.name,
                     )
                 case VariableType.CONTINUOUS:
-                    var_map[var.name] = solver.NumVar(var.lower_bound, var.upper_bound, var.name)
+                    var_map[var.name] = solver.NumVar(
+                        var.lower_bound, var.upper_bound, var.name
+                    )
 
         for constraint in problem.constraints:
-            expr = sum(coef * var_map[name] for name, coef in constraint.coefficients.items())
+            expr = sum(
+                coef * var_map[name] for name, coef in constraint.coefficients.items()
+            )
             match constraint.sense:
                 case ConstraintSense.LEQ:
                     solver.Add(expr <= constraint.rhs)
@@ -42,7 +54,10 @@ class MIPSolver:
                 case ConstraintSense.EQ:
                     solver.Add(expr == constraint.rhs)
 
-        obj_expr = sum(coef * var_map[name] for name, coef in problem.objective.coefficients.items())
+        obj_expr = sum(
+            coef * var_map[name]
+            for name, coef in problem.objective.coefficients.items()
+        )
         if problem.objective.sense == ObjectiveSense.MAXIMIZE:
             solver.Maximize(obj_expr)
         else:
@@ -62,7 +77,10 @@ class MIPSolver:
             return MIPSolution(
                 status=result_status,
                 objective_value=round(solver.Objective().Value(), 6),
-                variable_values={name: round(var.solution_value(), 6) for name, var in var_map.items()},
+                variable_values={
+                    name: round(var.solution_value(), 6)
+                    for name, var in var_map.items()
+                },
                 solve_time_ms=solver.wall_time(),
             )
 

@@ -66,7 +66,14 @@ def compute_vrp(
     Returns:
         Routes for each vehicle with stops and distances.
     """
-    return solve_vrp(locations, distance_matrix, demands, vehicle_capacities, depot, time_limit_seconds)
+    return solve_vrp(
+        locations,
+        distance_matrix,
+        demands,
+        vehicle_capacities,
+        depot,
+        time_limit_seconds,
+    )
 
 
 def compute_vrp_tw(
@@ -93,7 +100,15 @@ def compute_vrp_tw(
     Returns:
         Routes with arrival times at each stop.
     """
-    return solve_vrp_time_windows(locations, time_matrix, time_windows, demands, vehicle_capacities, depot, time_limit_seconds)
+    return solve_vrp_time_windows(
+        locations,
+        time_matrix,
+        time_windows,
+        demands,
+        vehicle_capacities,
+        depot,
+        time_limit_seconds,
+    )
 
 
 def compute_job_shop(
@@ -202,7 +217,9 @@ def compute_cutting_stock(
     Returns:
         Cutting patterns and total waste.
     """
-    return solve_cutting_stock(items, lengths, demands, stock_length, max_stock, time_limit_seconds)
+    return solve_cutting_stock(
+        items, lengths, demands, stock_length, max_stock, time_limit_seconds
+    )
 
 
 def compute_flexible_job_shop(
@@ -221,6 +238,7 @@ def compute_flexible_job_shop(
         Dict with makespan and machine assignments.
     """
     from vertex.solvers.scheduling import solve_flexible_job_shop
+
     return solve_flexible_job_shop(jobs, time_limit_seconds)
 
 
@@ -230,12 +248,12 @@ def compute_flow_shop(
 ) -> FlowShopResult:
     """
     Solve Flow Shop Scheduling - all jobs follow same machine sequence.
-    
+
     Args:
         processing_times: processing_times[job][machine] = duration.
             All jobs visit machines 0, 1, 2, ... in order.
         time_limit_seconds: Solver time limit.
-    
+
     Returns:
         Optimal job sequence and makespan.
     """
@@ -249,12 +267,12 @@ def compute_parallel_machines(
 ) -> ParallelMachineResult:
     """
     Solve Parallel Machine Scheduling - assign jobs to identical machines.
-    
+
     Args:
         job_durations: Duration of each job.
         num_machines: Number of identical parallel machines.
         time_limit_seconds: Solver time limit.
-    
+
     Returns:
         Machine assignments and makespan.
     """

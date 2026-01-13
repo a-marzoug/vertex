@@ -3,9 +3,9 @@
 from pydantic import BaseModel, Field
 
 from vertex.config import (
-    ConstraintSense,
     DEFAULT_VAR_LOWER_BOUND,
     DEFAULT_VAR_UPPER_BOUND,
+    ConstraintSense,
     ObjectiveSense,
     SolverStatus,
 )

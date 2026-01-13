@@ -5,8 +5,41 @@ from mcp.server.fastmcp import FastMCP
 from vertex.config import DEFAULT_HOST, DEFAULT_PORT, SERVER_DESCRIPTION, SERVER_NAME
 from vertex.models.linear import LPSolution
 from vertex.models.mip import MIPSolution
-from vertex.models.network import MaxFlowResult, MinCostFlowResult, MSTResult, MultiCommodityFlowResult, ShortestPathResult
-from vertex.models.scheduling import BinPackingResult, CuttingStockResult, GraphColoringResult, JobShopResult, SetCoverResult, TSPResult, VRPResult
+from vertex.models.network import (
+    MaxFlowResult,
+    MinCostFlowResult,
+    MSTResult,
+    MultiCommodityFlowResult,
+    ShortestPathResult,
+)
+from vertex.models.scheduling import (
+    BinPackingResult,
+    CuttingStockResult,
+    FlowShopResult,
+    GraphColoringResult,
+    JobShopResult,
+    ParallelMachineResult,
+    SetCoverResult,
+    TSPResult,
+    VRPResult,
+)
+from vertex.models.stochastic import (
+    BinPacking2DResult,
+    ChanceConstrainedResult,
+    CrewScheduleResult,
+    LotSizingResult,
+    MonteCarloResult,
+    MultiEchelonResult,
+    NetworkDesignResult,
+    NewsvendorResult,
+    PortfolioQPResult,
+    QAPResult,
+    QPResult,
+    QueueMetrics,
+    RobustResult,
+    SteinerTreeResult,
+    TwoStageResult,
+)
 from vertex.prompts.linear import formulate_lp, interpret_solution
 from vertex.prompts.mip import formulate_mip
 from vertex.tools.analysis import (
@@ -23,13 +56,21 @@ from vertex.tools.cp import NQueensResult, SudokuResult, solve_n_queens, solve_s
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
 from vertex.tools.multiobjective import MultiObjectiveResult, solve_multi_objective
-from vertex.tools.network import compute_max_flow, compute_min_cost_flow, compute_mst, compute_multi_commodity_flow, compute_shortest_path
-from vertex.tools.scheduling import compute_flexible_job_shop
+from vertex.tools.network import (
+    compute_max_flow,
+    compute_min_cost_flow,
+    compute_mst,
+    compute_multi_commodity_flow,
+    compute_shortest_path,
+)
 from vertex.tools.scheduling import (
     compute_bin_packing,
     compute_cutting_stock,
+    compute_flexible_job_shop,
+    compute_flow_shop,
     compute_graph_coloring,
     compute_job_shop,
+    compute_parallel_machines,
     compute_set_cover,
     compute_tsp,
     compute_vrp,
@@ -37,46 +78,49 @@ from vertex.tools.scheduling import (
 )
 from vertex.tools.sensitivity import SensitivityReport, analyze_sensitivity
 from vertex.tools.stochastic import (
+    analyze_queue_mm1,
+    analyze_queue_mmc,
     compute_lot_sizing,
     compute_newsvendor,
     compute_two_stage_stochastic,
-    solve_robust_optimization,
-    analyze_queue_mm1,
-    analyze_queue_mmc,
-    simulate_newsvendor_monte_carlo,
-    simulate_production_monte_carlo,
-    schedule_crew,
-    solve_chance_constrained_production,
-    pack_rectangles_2d,
     design_network,
-    solve_quadratic_assignment,
     find_steiner_tree,
     optimize_multi_echelon_inventory,
-    solve_quadratic_program,
     optimize_portfolio_qp,
+    pack_rectangles_2d,
+    schedule_crew,
+    simulate_newsvendor_monte_carlo,
+    simulate_production_monte_carlo,
+    solve_chance_constrained_production,
+    solve_quadratic_assignment,
+    solve_quadratic_program,
+    solve_robust_optimization,
 )
-from vertex.models.stochastic import (
-    BinPacking2DResult, ChanceConstrainedResult, CrewScheduleResult,
-    LotSizingResult, MonteCarloResult, MultiEchelonResult, NetworkDesignResult,
-    NewsvendorResult, PortfolioQPResult, QAPResult, QPResult, QueueMetrics,
-    RobustResult, SteinerTreeResult, TwoStageResult
+from vertex.tools.templates.assignment import (
+    AssignmentResult,
+    optimize_assignment as _optimize_assignment,
 )
-from vertex.models.scheduling import FlowShopResult, ParallelMachineResult
-from vertex.tools.scheduling import compute_flow_shop, compute_parallel_machines
-from vertex.tools.templates.assignment import AssignmentResult
-from vertex.tools.templates.assignment import optimize_assignment as _optimize_assignment
 from vertex.tools.templates.diet import DietResult
-from vertex.tools.templates.diet import optimize_diet as _optimize_diet
-from vertex.tools.templates.facility import FacilityResult
-from vertex.tools.templates.facility import optimize_facility_location as _optimize_facility
-from vertex.tools.templates.healthcare import ResourceAllocationResult, optimize_resource_allocation
+from vertex.tools.templates.facility import (
+    FacilityResult,
+    optimize_facility_location as _optimize_facility,
+)
+from vertex.tools.templates.healthcare import (
+    ResourceAllocationResult,
+    optimize_resource_allocation,
+)
 from vertex.tools.templates.inventory import EOQResult, optimize_eoq
-from vertex.tools.templates.knapsack import KnapsackResult
-from vertex.tools.templates.knapsack import optimize_knapsack as _optimize_knapsack
+from vertex.tools.templates.knapsack import (
+    KnapsackResult,
+    optimize_knapsack as _optimize_knapsack,
+)
 from vertex.tools.templates.portfolio import PortfolioResult, optimize_portfolio
 from vertex.tools.templates.production import ProductionResult, optimize_production
 from vertex.tools.templates.supplychain import SupplyChainResult, optimize_supply_chain
-from vertex.tools.templates.workforce import WorkforceResult, optimize_workforce_schedule
+from vertex.tools.templates.workforce import (
+    WorkforceResult,
+    optimize_workforce_schedule,
+)
 
 mcp = FastMCP(
     SERVER_NAME,
@@ -113,7 +157,9 @@ def analyze_lp_sensitivity(
     Returns shadow prices (marginal value of constraints) and reduced costs
     (how much variable coefficients must improve to enter the solution).
     """
-    return analyze_sensitivity(variables, constraints, objective_coefficients, objective_sense)
+    return analyze_sensitivity(
+        variables, constraints, objective_coefficients, objective_sense
+    )
 
 
 @mcp.tool()
@@ -136,7 +182,14 @@ def analyze_what_if_scenario(
         parameter_values: Values to test for the constraint RHS.
         objective_sense: "maximize" or "minimize".
     """
-    return _analyze_what_if(variables, constraints, objective_coefficients, parameter_name, parameter_values, objective_sense)
+    return _analyze_what_if(
+        variables,
+        constraints,
+        objective_coefficients,
+        parameter_name,
+        parameter_values,
+        objective_sense,
+    )
 
 
 @mcp.tool()
@@ -155,7 +208,9 @@ def diagnose_infeasibility(
         objective_coefficients: Objective function coefficients.
         objective_sense: "maximize" or "minimize".
     """
-    return _diagnose_infeasibility(variables, constraints, objective_coefficients, objective_sense)
+    return _diagnose_infeasibility(
+        variables, constraints, objective_coefficients, objective_sense
+    )
 
 
 @mcp.tool()
@@ -194,7 +249,9 @@ def solve_pareto_frontier(
         num_points: Number of Pareto points to generate.
         objective_senses: Dict of objective_name -> "maximize"/"minimize".
     """
-    return solve_multi_objective(variables, constraints, objectives, num_points, objective_senses)
+    return solve_multi_objective(
+        variables, constraints, objectives, num_points, objective_senses
+    )
 
 
 @mcp.tool()
@@ -239,7 +296,14 @@ def find_alternative_optimal_solutions(
         max_solutions: Maximum solutions to return.
         gap_tolerance: Accept solutions within this fraction of optimal.
     """
-    return _find_alternatives(variables, constraints, objective_coefficients, objective_sense, max_solutions, gap_tolerance)
+    return _find_alternatives(
+        variables,
+        constraints,
+        objective_coefficients,
+        objective_sense,
+        max_solutions,
+        gap_tolerance,
+    )
 
 
 @mcp.tool()
@@ -264,7 +328,9 @@ def optimize_diet_plan(
     max_limits: dict[str, float] | None = None,
 ) -> DietResult:
     """Find minimum cost diet meeting nutritional requirements."""
-    return optimize_diet(foods, nutrients, costs, nutrition_values, min_requirements, max_limits)
+    return optimize_diet(
+        foods, nutrients, costs, nutrition_values, min_requirements, max_limits
+    )
 
 
 @mcp.tool()
@@ -276,7 +342,9 @@ def optimize_investment_portfolio(
     max_allocation: dict[str, float] | None = None,
 ) -> PortfolioResult:
     """Maximize expected return with allocation constraints."""
-    return optimize_portfolio(assets, expected_returns, budget, min_allocation, max_allocation)
+    return optimize_portfolio(
+        assets, expected_returns, budget, min_allocation, max_allocation
+    )
 
 
 # MIP Tools
@@ -341,7 +409,13 @@ def optimize_inventory_eoq(
         lead_time_days: Lead time for reorder point.
         safety_stock: Safety stock units.
     """
-    return optimize_eoq(annual_demand, ordering_cost, holding_cost_per_unit, lead_time_days, safety_stock)
+    return optimize_eoq(
+        annual_demand,
+        ordering_cost,
+        holding_cost_per_unit,
+        lead_time_days,
+        safety_stock,
+    )
 
 
 @mcp.tool()
@@ -366,7 +440,15 @@ def optimize_workforce(
         max_shifts_per_worker: Maximum shifts per worker.
         time_limit_seconds: Solver time limit.
     """
-    return optimize_workforce_schedule(workers, days, shifts, requirements, costs, max_shifts_per_worker, time_limit_seconds)
+    return optimize_workforce_schedule(
+        workers,
+        days,
+        shifts,
+        requirements,
+        costs,
+        max_shifts_per_worker,
+        time_limit_seconds,
+    )
 
 
 @mcp.tool()
@@ -389,7 +471,9 @@ def optimize_healthcare_resources(
         effectiveness: Optional effectiveness multiplier per location/resource.
         min_coverage: Optional minimum coverage ratio per location.
     """
-    return optimize_resource_allocation(resources, locations, availability, demands, effectiveness, min_coverage)
+    return optimize_resource_allocation(
+        resources, locations, availability, demands, effectiveness, min_coverage
+    )
 
 
 @mcp.tool()
@@ -414,7 +498,15 @@ def optimize_supply_chain_network(
         transport_costs: transport_costs[facility][customer] = unit cost.
         max_facilities: Optional limit on facilities to open.
     """
-    return optimize_supply_chain(facilities, customers, fixed_costs, capacities, demands, transport_costs, max_facilities)
+    return optimize_supply_chain(
+        facilities,
+        customers,
+        fixed_costs,
+        capacities,
+        demands,
+        transport_costs,
+        max_facilities,
+    )
 
 
 # Network Tools
@@ -532,7 +624,10 @@ def solve_transshipment(
         capacities: Optional capacities[from][to] = max flow.
     """
     from vertex.tools.network import compute_transshipment
-    return compute_transshipment(sources, transshipment_nodes, destinations, supplies, demands, costs, capacities)
+
+    return compute_transshipment(
+        sources, transshipment_nodes, destinations, supplies, demands, costs, capacities
+    )
 
 
 # Scheduling & Routing Tools
@@ -573,7 +668,14 @@ def solve_vrp(
         depot: Index of depot location.
         time_limit_seconds: Solver time limit.
     """
-    return compute_vrp(locations, distance_matrix, demands, vehicle_capacities, depot, time_limit_seconds)
+    return compute_vrp(
+        locations,
+        distance_matrix,
+        demands,
+        vehicle_capacities,
+        depot,
+        time_limit_seconds,
+    )
 
 
 @mcp.tool()
@@ -661,7 +763,15 @@ def solve_vrp_time_windows(
         depot: Index of depot location.
         time_limit_seconds: Solver time limit.
     """
-    return compute_vrp_tw(locations, time_matrix, time_windows, demands, vehicle_capacities, depot, time_limit_seconds)
+    return compute_vrp_tw(
+        locations,
+        time_matrix,
+        time_windows,
+        demands,
+        vehicle_capacities,
+        depot,
+        time_limit_seconds,
+    )
 
 
 @mcp.tool()
@@ -682,7 +792,9 @@ def solve_bin_packing(
         max_bins: Maximum bins available.
         time_limit_seconds: Solver time limit.
     """
-    return compute_bin_packing(items, weights, bin_capacity, max_bins, time_limit_seconds)
+    return compute_bin_packing(
+        items, weights, bin_capacity, max_bins, time_limit_seconds
+    )
 
 
 @mcp.tool()
@@ -743,7 +855,9 @@ def solve_cutting_stock(
         max_stock: Maximum stock pieces available.
         time_limit_seconds: Solver time limit.
     """
-    return compute_cutting_stock(items, lengths, demands, stock_length, max_stock, time_limit_seconds)
+    return compute_cutting_stock(
+        items, lengths, demands, stock_length, max_stock, time_limit_seconds
+    )
 
 
 # Stochastic & Dynamic Optimization Tools
@@ -770,7 +884,9 @@ def solve_two_stage_stochastic(
         holding_costs: Cost per unit of excess inventory.
         capacity: Optional production capacity limits.
     """
-    return compute_two_stage_stochastic(products, scenarios, production_costs, shortage_costs, holding_costs, capacity)
+    return compute_two_stage_stochastic(
+        products, scenarios, production_costs, shortage_costs, holding_costs, capacity
+    )
 
 
 @mcp.tool()
@@ -793,7 +909,9 @@ def solve_newsvendor(
         mean_demand: Expected demand (normal distribution).
         std_demand: Standard deviation of demand.
     """
-    return compute_newsvendor(selling_price, cost, salvage_value, mean_demand, std_demand)
+    return compute_newsvendor(
+        selling_price, cost, salvage_value, mean_demand, std_demand
+    )
 
 
 @mcp.tool()
@@ -843,8 +961,13 @@ def solve_robust_production(
         capacity: Optional production limits.
     """
     return solve_robust_optimization(
-        products, nominal_demand, demand_deviation, uncertainty_budget,
-        production_costs, selling_prices, capacity
+        products,
+        nominal_demand,
+        demand_deviation,
+        uncertainty_budget,
+        production_costs,
+        selling_prices,
+        capacity,
     )
 
 
@@ -949,8 +1072,13 @@ def simulate_newsvendor(
         num_simulations: Number of simulation runs.
     """
     return simulate_newsvendor_monte_carlo(
-        selling_price, cost, salvage_value, order_quantity,
-        mean_demand, std_demand, num_simulations
+        selling_price,
+        cost,
+        salvage_value,
+        order_quantity,
+        mean_demand,
+        std_demand,
+        num_simulations,
     )
 
 
@@ -979,8 +1107,14 @@ def simulate_production(
         num_simulations: Number of simulation runs.
     """
     return simulate_production_monte_carlo(
-        products, production_quantities, mean_demands, std_demands,
-        selling_prices, production_costs, shortage_costs, num_simulations
+        products,
+        production_quantities,
+        mean_demands,
+        std_demands,
+        selling_prices,
+        production_costs,
+        shortage_costs,
+        num_simulations,
     )
 
 
@@ -1011,8 +1145,15 @@ def solve_crew_schedule(
         time_limit_seconds: Solver time limit.
     """
     return schedule_crew(
-        workers, days, shifts, requirements, worker_availability,
-        costs, max_shifts_per_worker, min_rest_between_shifts, time_limit_seconds
+        workers,
+        days,
+        shifts,
+        requirements,
+        worker_availability,
+        costs,
+        max_shifts_per_worker,
+        min_rest_between_shifts,
+        time_limit_seconds,
     )
 
 
@@ -1041,8 +1182,13 @@ def solve_chance_constrained(
         capacity: Optional production limits.
     """
     return solve_chance_constrained_production(
-        products, mean_demands, std_demands, production_costs,
-        selling_prices, service_level, capacity
+        products,
+        mean_demands,
+        std_demands,
+        production_costs,
+        selling_prices,
+        service_level,
+        capacity,
     )
 
 
@@ -1067,8 +1213,7 @@ def solve_2d_bin_packing(
         time_limit_seconds: Solver time limit.
     """
     return pack_rectangles_2d(
-        rectangles, bin_width, bin_height, max_bins,
-        allow_rotation, time_limit_seconds
+        rectangles, bin_width, bin_height, max_bins, allow_rotation, time_limit_seconds
     )
 
 
@@ -1095,8 +1240,13 @@ def solve_network_design(
         time_limit_seconds: Solver time limit.
     """
     return design_network(
-        nodes, potential_arcs, commodities, arc_fixed_costs,
-        arc_capacities, arc_variable_costs, time_limit_seconds
+        nodes,
+        potential_arcs,
+        commodities,
+        arc_fixed_costs,
+        arc_capacities,
+        arc_variable_costs,
+        time_limit_seconds,
     )
 
 
@@ -1194,7 +1344,9 @@ def solve_qp(
         A_ineq, b_ineq: Inequality constraints A_ineq @ x <= b_ineq.
         lower_bounds, upper_bounds: Variable bounds.
     """
-    return solve_quadratic_program(variables, Q, c, A_eq, b_eq, A_ineq, b_ineq, lower_bounds, upper_bounds)
+    return solve_quadratic_program(
+        variables, Q, c, A_eq, b_eq, A_ineq, b_ineq, lower_bounds, upper_bounds
+    )
 
 
 @mcp.tool()
@@ -1222,8 +1374,14 @@ def optimize_portfolio_variance(
         min_weight: Minimum weight per asset.
     """
     return optimize_portfolio_qp(
-        assets, expected_returns, covariance_matrix, target_return,
-        risk_aversion, risk_free_rate, max_weight, min_weight
+        assets,
+        expected_returns,
+        covariance_matrix,
+        target_return,
+        risk_aversion,
+        risk_free_rate,
+        max_weight,
+        min_weight,
     )
 
 
@@ -1250,7 +1408,11 @@ def interpret_lp_solution(
     """Interpret optimization solution for decision makers."""
     import json
 
-    values = json.loads(variable_values) if isinstance(variable_values, str) else variable_values
+    values = (
+        json.loads(variable_values)
+        if isinstance(variable_values, str)
+        else variable_values
+    )
     return interpret_solution(status, objective_value, values, None, problem_context)
 
 

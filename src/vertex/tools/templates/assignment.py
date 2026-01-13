@@ -63,7 +63,9 @@ def optimize_assignment(
     problem = MIPProblem(
         variables=variables,
         constraints=constraints,
-        objective=MIPObjective(coefficients=objective_coefficients, sense=ObjectiveSense.MINIMIZE),
+        objective=MIPObjective(
+            coefficients=objective_coefficients, sense=ObjectiveSense.MINIMIZE
+        ),
     )
 
     solution = MIPSolver().solve(problem)

@@ -39,8 +39,12 @@ def solve_tsp(
     routing.SetArcCostEvaluatorOfAllVehicles(transit_idx)
 
     search_params = pywrapcp.DefaultRoutingSearchParameters()
-    search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-    search_params.local_search_metaheuristic = routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+    search_params.first_solution_strategy = (
+        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+    )
+    search_params.local_search_metaheuristic = (
+        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+    )
     search_params.time_limit.seconds = time_limit_seconds
 
     solution = routing.SolveWithParameters(search_params)
@@ -97,8 +101,12 @@ def solve_vrp(
     )
 
     search_params = pywrapcp.DefaultRoutingSearchParameters()
-    search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-    search_params.local_search_metaheuristic = routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+    search_params.first_solution_strategy = (
+        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+    )
+    search_params.local_search_metaheuristic = (
+        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+    )
     search_params.time_limit.seconds = time_limit_seconds
 
     solution = routing.SolveWithParameters(search_params)
@@ -123,7 +131,11 @@ def solve_vrp(
             route_distance += routing.GetArcCostForVehicle(prev_index, index, v)
         stops.append(locations[manager.IndexToNode(index)])
         if len(stops) > 2:  # Has actual stops beyond depot
-            routes.append(VRPRoute(vehicle=v, stops=stops, distance=route_distance, load=route_load))
+            routes.append(
+                VRPRoute(
+                    vehicle=v, stops=stops, distance=route_distance, load=route_load
+                )
+            )
             total_distance += route_distance
 
     return VRPResult(
@@ -166,18 +178,26 @@ def solve_vrp_time_windows(
 
     for loc_idx in range(n):
         index = manager.NodeToIndex(loc_idx)
-        time_dimension.CumulVar(index).SetRange(time_windows[loc_idx][0], time_windows[loc_idx][1])
+        time_dimension.CumulVar(index).SetRange(
+            time_windows[loc_idx][0], time_windows[loc_idx][1]
+        )
 
     # Capacity
     def demand_callback(idx):
         return demands[manager.IndexToNode(idx)]
 
     demand_idx = routing.RegisterUnaryTransitCallback(demand_callback)
-    routing.AddDimensionWithVehicleCapacity(demand_idx, 0, vehicle_capacities, True, "Capacity")
+    routing.AddDimensionWithVehicleCapacity(
+        demand_idx, 0, vehicle_capacities, True, "Capacity"
+    )
 
     search_params = pywrapcp.DefaultRoutingSearchParameters()
-    search_params.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-    search_params.local_search_metaheuristic = routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+    search_params.first_solution_strategy = (
+        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+    )
+    search_params.local_search_metaheuristic = (
+        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+    )
     search_params.time_limit.seconds = time_limit_seconds
 
     solution = routing.SolveWithParameters(search_params)
@@ -205,10 +225,23 @@ def solve_vrp_time_windows(
         stops.append(locations[manager.IndexToNode(index)])
         arrival_times.append(solution.Value(time_dimension.CumulVar(index)))
         if len(stops) > 2:
-            routes.append(VRPRoute(vehicle=v, stops=stops, distance=route_distance, load=route_load, arrival_times=arrival_times))
+            routes.append(
+                VRPRoute(
+                    vehicle=v,
+                    stops=stops,
+                    distance=route_distance,
+                    load=route_load,
+                    arrival_times=arrival_times,
+                )
+            )
             total_distance += route_distance
 
-    return VRPResult(status=SolverStatus.OPTIMAL, routes=routes, total_distance=total_distance, solve_time_ms=elapsed)
+    return VRPResult(
+        status=SolverStatus.OPTIMAL,
+        routes=routes,
+        total_distance=total_distance,
+        solve_time_ms=elapsed,
+    )
 
 
 def solve_job_shop(
@@ -229,8 +262,16 @@ def solve_job_shop(
         for task_id, (machine, duration) in enumerate(job):
             start_var = model.new_int_var(0, horizon, f"start_{job_id}_{task_id}")
             end_var = model.new_int_var(0, horizon, f"end_{job_id}_{task_id}")
-            interval_var = model.new_interval_var(start_var, duration, end_var, f"interval_{job_id}_{task_id}")
-            all_tasks[(job_id, task_id)] = (start_var, end_var, interval_var, machine, duration)
+            interval_var = model.new_interval_var(
+                start_var, duration, end_var, f"interval_{job_id}_{task_id}"
+            )
+            all_tasks[(job_id, task_id)] = (
+                start_var,
+                end_var,
+                interval_var,
+                machine,
+                duration,
+            )
             machine_to_intervals[machine].append(interval_var)
 
     for intervals in machine_to_intervals:
@@ -238,10 +279,15 @@ def solve_job_shop(
 
     for job_id, job in enumerate(jobs):
         for task_id in range(len(job) - 1):
-            model.add(all_tasks[(job_id, task_id + 1)][0] >= all_tasks[(job_id, task_id)][1])
+            model.add(
+                all_tasks[(job_id, task_id + 1)][0] >= all_tasks[(job_id, task_id)][1]
+            )
 
     makespan = model.new_int_var(0, horizon, "makespan")
-    model.add_max_equality(makespan, [all_tasks[(job_id, len(job) - 1)][1] for job_id, job in enumerate(jobs)])
+    model.add_max_equality(
+        makespan,
+        [all_tasks[(job_id, len(job) - 1)][1] for job_id, job in enumerate(jobs)],
+    )
     model.minimize(makespan)
 
     solver = cp_model.CpSolver()
@@ -253,14 +299,28 @@ def solve_job_shop(
         return JobShopResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     schedule = []
-    for (job_id, task_id), (start_var, end_var, _, machine, duration) in all_tasks.items():
-        schedule.append(ScheduledTask(
-            job=job_id, task=task_id, machine=machine,
-            start=solver.value(start_var), duration=duration, end=solver.value(end_var),
-        ))
+    for (job_id, task_id), (
+        start_var,
+        end_var,
+        _,
+        machine,
+        duration,
+    ) in all_tasks.items():
+        schedule.append(
+            ScheduledTask(
+                job=job_id,
+                task=task_id,
+                machine=machine,
+                start=solver.value(start_var),
+                duration=duration,
+                end=solver.value(end_var),
+            )
+        )
 
     return JobShopResult(
-        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == cp_model.OPTIMAL
+        else SolverStatus.FEASIBLE,
         makespan=solver.value(makespan),
         schedule=sorted(schedule, key=lambda t: (t.job, t.task)),
         solve_time_ms=elapsed,
@@ -317,10 +377,14 @@ def solve_bin_packing(
         if solver.value(y[b]):
             bin_items = [items[i] for i in range(n_items) if solver.value(x[(i, b)])]
             total_weight = sum(weights[item] for item in bin_items)
-            assignments.append(BinAssignment(bin_id=b, items=bin_items, total_weight=total_weight))
+            assignments.append(
+                BinAssignment(bin_id=b, items=bin_items, total_weight=total_weight)
+            )
 
     return BinPackingResult(
-        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == cp_model.OPTIMAL
+        else SolverStatus.FEASIBLE,
         num_bins_used=len(assignments),
         assignments=assignments,
         solve_time_ms=elapsed,
@@ -366,7 +430,9 @@ def solve_set_cover(
     total_cost = sum(costs[s] for s in selected)
 
     return SetCoverResult(
-        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == cp_model.OPTIMAL
+        else SolverStatus.FEASIBLE,
         selected_sets=selected,
         total_cost=total_cost,
         solve_time_ms=elapsed,
@@ -381,7 +447,7 @@ def solve_graph_coloring(
 ) -> "GraphColoringResult":
     """Solve Graph Coloring Problem using CP-SAT."""
     from vertex.models.scheduling import GraphColoringResult
-    
+
     start_time = time.time()
     model = cp_model.CpModel()
 
@@ -406,13 +472,17 @@ def solve_graph_coloring(
     elapsed = (time.time() - start_time) * 1000
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return GraphColoringResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
+        return GraphColoringResult(
+            status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed
+        )
 
     coloring = {n: solver.value(color[i]) for i, n in enumerate(nodes)}
     num_colors = solver.value(max_color) + 1
 
     return GraphColoringResult(
-        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == cp_model.OPTIMAL
+        else SolverStatus.FEASIBLE,
         num_colors=num_colors,
         coloring=coloring,
         solve_time_ms=elapsed,
@@ -429,7 +499,7 @@ def solve_cutting_stock(
 ) -> "CuttingStockResult":
     """Solve Cutting Stock Problem using CP-SAT."""
     from vertex.models.scheduling import CuttingPattern, CuttingStockResult
-    
+
     start_time = time.time()
     model = cp_model.CpModel()
 
@@ -472,14 +542,20 @@ def solve_cutting_stock(
     total_waste = 0
     for s in range(n_stock):
         if solver.value(y[s]):
-            cuts = {items[i]: solver.value(x[(s, i)]) for i in range(n_items) if solver.value(x[(s, i)]) > 0}
+            cuts = {
+                items[i]: solver.value(x[(s, i)])
+                for i in range(n_items)
+                if solver.value(x[(s, i)]) > 0
+            }
             used = sum(lengths[item] * count for item, count in cuts.items())
             waste = stock_length - used
             patterns.append(CuttingPattern(stock_id=s, cuts=cuts, waste=waste))
             total_waste += waste
 
     return CuttingStockResult(
-        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == cp_model.OPTIMAL
+        else SolverStatus.FEASIBLE,
         num_stock_used=len(patterns),
         patterns=patterns,
         total_waste=total_waste,
@@ -511,8 +587,7 @@ def solve_flexible_job_shop(
 
     # Compute horizon
     horizon = sum(
-        max(dur for _, dur in task["machines"])
-        for job in jobs for task in job
+        max(dur for _, dur in task["machines"]) for job in jobs for task in job
     )
 
     all_tasks = {}
@@ -527,7 +602,9 @@ def solve_flexible_job_shop(
                 start = model.new_int_var(0, horizon, f"start{suffix}")
                 end = model.new_int_var(0, horizon, f"end{suffix}")
                 present = model.new_bool_var(f"present{suffix}")
-                interval = model.new_optional_interval_var(start, duration, end, present, f"interval{suffix}")
+                interval = model.new_optional_interval_var(
+                    start, duration, end, present, f"interval{suffix}"
+                )
                 task_alts.append((start, end, interval, machine, duration, present))
                 presences.append(present)
                 machine_intervals.setdefault(machine, []).append(interval)
@@ -566,10 +643,15 @@ def solve_flexible_job_shop(
     for (job_id, task_id), alts in all_tasks.items():
         for start, end, interval, machine, duration, present in alts:
             if solver.value(present):
-                schedule.append({
-                    "job": job_id, "task": task_id, "machine": machine,
-                    "start": solver.value(start), "end": solver.value(end),
-                })
+                schedule.append(
+                    {
+                        "job": job_id,
+                        "task": task_id,
+                        "machine": machine,
+                        "start": solver.value(start),
+                        "end": solver.value(end),
+                    }
+                )
 
     return {
         "status": "optimal" if status == cp_model.OPTIMAL else "feasible",
@@ -585,25 +667,25 @@ def solve_flow_shop(
 ) -> "FlowShopResult":
     """
     Solve Flow Shop Scheduling - all jobs follow same machine sequence.
-    
+
     Args:
         processing_times: processing_times[job][machine] = duration
         time_limit_seconds: Solver time limit.
     """
     from vertex.models.scheduling import FlowShopResult, ScheduledTask
-    
+
     start_time = time.time()
     model = cp_model.CpModel()
-    
+
     n_jobs = len(processing_times)
     n_machines = len(processing_times[0]) if n_jobs > 0 else 0
     horizon = sum(sum(job) for job in processing_times)
-    
+
     # Variables: start[j][m] = start time of job j on machine m
     starts = {}
     ends = {}
     intervals = {}
-    
+
     for j in range(n_jobs):
         for m in range(n_machines):
             dur = processing_times[j][m]
@@ -612,45 +694,51 @@ def solve_flow_shop(
             intervals[(j, m)] = model.new_interval_var(
                 starts[(j, m)], dur, ends[(j, m)], f"interval_{j}_{m}"
             )
-    
+
     # Precedence: job j must finish machine m before starting m+1
     for j in range(n_jobs):
         for m in range(n_machines - 1):
             model.add(starts[(j, m + 1)] >= ends[(j, m)])
-    
+
     # No overlap on each machine
     for m in range(n_machines):
         model.add_no_overlap([intervals[(j, m)] for j in range(n_jobs)])
-    
+
     # Minimize makespan
     makespan = model.new_int_var(0, horizon, "makespan")
     model.add_max_equality(makespan, [ends[(j, n_machines - 1)] for j in range(n_jobs)])
     model.minimize(makespan)
-    
+
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_seconds
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
-    
+
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return FlowShopResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
-    
+
     # Extract job sequence (order on first machine)
     first_machine_starts = [(j, solver.value(starts[(j, 0)])) for j in range(n_jobs)]
     job_sequence = [j for j, _ in sorted(first_machine_starts, key=lambda x: x[1])]
-    
+
     schedule = []
     for j in range(n_jobs):
         for m in range(n_machines):
-            schedule.append(ScheduledTask(
-                job=j, task=m, machine=m,
-                start=solver.value(starts[(j, m)]),
-                duration=processing_times[j][m],
-                end=solver.value(ends[(j, m)]),
-            ))
-    
+            schedule.append(
+                ScheduledTask(
+                    job=j,
+                    task=m,
+                    machine=m,
+                    start=solver.value(starts[(j, m)]),
+                    duration=processing_times[j][m],
+                    end=solver.value(ends[(j, m)]),
+                )
+            )
+
     return FlowShopResult(
-        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == cp_model.OPTIMAL
+        else SolverStatus.FEASIBLE,
         makespan=solver.value(makespan),
         job_sequence=job_sequence,
         schedule=sorted(schedule, key=lambda t: (t.job, t.task)),
@@ -665,29 +753,31 @@ def solve_parallel_machines(
 ) -> "ParallelMachineResult":
     """
     Solve Parallel Machine Scheduling - assign jobs to identical machines.
-    
+
     Args:
         job_durations: Duration of each job.
         num_machines: Number of identical machines.
         time_limit_seconds: Solver time limit.
     """
     from vertex.models.scheduling import ParallelMachineResult, ScheduledTask
-    
+
     start_time = time.time()
     model = cp_model.CpModel()
-    
+
     n_jobs = len(job_durations)
     horizon = sum(job_durations)
-    
+
     # Variables
     starts = [model.new_int_var(0, horizon, f"start_{j}") for j in range(n_jobs)]
     ends = [model.new_int_var(0, horizon, f"end_{j}") for j in range(n_jobs)]
-    machine_assign = [model.new_int_var(0, num_machines - 1, f"machine_{j}") for j in range(n_jobs)]
-    
+    machine_assign = [
+        model.new_int_var(0, num_machines - 1, f"machine_{j}") for j in range(n_jobs)
+    ]
+
     # Intervals per machine (optional)
     intervals_per_machine = [[] for _ in range(num_machines)]
     presences = {}
-    
+
     for j in range(n_jobs):
         for m in range(num_machines):
             present = model.new_bool_var(f"present_{j}_{m}")
@@ -698,38 +788,46 @@ def solve_parallel_machines(
             presences[(j, m)] = present
             model.add(machine_assign[j] == m).only_enforce_if(present)
         model.add_exactly_one(presences[(j, m)] for m in range(num_machines))
-    
+
     # No overlap on each machine
     for m in range(num_machines):
         model.add_no_overlap(intervals_per_machine[m])
-    
+
     # Minimize makespan
     makespan = model.new_int_var(0, horizon, "makespan")
     model.add_max_equality(makespan, ends)
     model.minimize(makespan)
-    
+
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_seconds
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
-    
+
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return ParallelMachineResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
-    
+        return ParallelMachineResult(
+            status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed
+        )
+
     machine_assignments = {m: [] for m in range(num_machines)}
     schedule = []
     for j in range(n_jobs):
         m = solver.value(machine_assign[j])
         machine_assignments[m].append(j)
-        schedule.append(ScheduledTask(
-            job=j, task=0, machine=m,
-            start=solver.value(starts[j]),
-            duration=job_durations[j],
-            end=solver.value(ends[j]),
-        ))
-    
+        schedule.append(
+            ScheduledTask(
+                job=j,
+                task=0,
+                machine=m,
+                start=solver.value(starts[j]),
+                duration=job_durations[j],
+                end=solver.value(ends[j]),
+            )
+        )
+
     return ParallelMachineResult(
-        status=SolverStatus.OPTIMAL if status == cp_model.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == cp_model.OPTIMAL
+        else SolverStatus.FEASIBLE,
         makespan=solver.value(makespan),
         machine_assignments=machine_assignments,
         schedule=sorted(schedule, key=lambda t: (t.machine, t.start)),

@@ -10,7 +10,9 @@ class TSPResult(BaseModel):
     """Result of Traveling Salesman Problem."""
 
     status: SolverStatus
-    route: list[str] = Field(default_factory=list, description="Ordered list of locations in tour")
+    route: list[str] = Field(
+        default_factory=list, description="Ordered list of locations in tour"
+    )
     total_distance: float | None = None
     solve_time_ms: float | None = None
 
@@ -23,7 +25,9 @@ class VRPRoute(BaseModel):
     stops: list[str] = Field(description="Ordered stops including depot")
     distance: float
     load: float = 0
-    arrival_times: list[int] = Field(default_factory=list, description="Arrival time at each stop")
+    arrival_times: list[int] = Field(
+        default_factory=list, description="Arrival time at each stop"
+    )
 
 
 class VRPResult(BaseModel):
@@ -97,7 +101,9 @@ class GraphColoringResult(BaseModel):
 
     status: SolverStatus
     num_colors: int | None = None
-    coloring: dict[str, int] = Field(default_factory=dict, description="Node to color assignment")
+    coloring: dict[str, int] = Field(
+        default_factory=dict, description="Node to color assignment"
+    )
     solve_time_ms: float | None = None
 
 
@@ -137,6 +143,8 @@ class ParallelMachineResult(BaseModel):
 
     status: SolverStatus
     makespan: int | None = None
-    machine_assignments: dict[int, list[int]] = Field(default_factory=dict, description="Machine to job list")
+    machine_assignments: dict[int, list[int]] = Field(
+        default_factory=dict, description="Machine to job list"
+    )
     schedule: list[ScheduledTask] = Field(default_factory=list)
     solve_time_ms: float | None = None

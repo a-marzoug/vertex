@@ -3,7 +3,10 @@
 from vertex.tools.templates.assignment import AssignmentResult, optimize_assignment
 from vertex.tools.templates.diet import DietResult, optimize_diet
 from vertex.tools.templates.facility import FacilityResult, optimize_facility_location
-from vertex.tools.templates.healthcare import ResourceAllocationResult, optimize_resource_allocation
+from vertex.tools.templates.healthcare import (
+    ResourceAllocationResult,
+    optimize_resource_allocation,
+)
 from vertex.tools.templates.inventory import (
     EOQResult,
     MultiItemInventoryResult,

@@ -1,7 +1,13 @@
 """Generic Mixed-Integer Programming tool."""
 
 from vertex.config import ConstraintSense, ObjectiveSense, VariableType
-from vertex.models.mip import MIPConstraint, MIPObjective, MIPProblem, MIPSolution, MIPVariable
+from vertex.models.mip import (
+    MIPConstraint,
+    MIPObjective,
+    MIPProblem,
+    MIPSolution,
+    MIPVariable,
+)
 from vertex.solvers.mip import MIPSolver
 
 

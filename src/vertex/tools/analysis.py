@@ -12,7 +12,9 @@ class WhatIfResult(BaseModel):
 
     parameter_name: str
     original_value: float
-    results: list[dict] = Field(default_factory=list, description="List of {value, objective, feasible}")
+    results: list[dict] = Field(
+        default_factory=list, description="List of {value, objective, feasible}"
+    )
 
 
 class InfeasibilityResult(BaseModel):
@@ -71,16 +73,21 @@ def analyze_what_if(
             )
             for c in modified_constraints
         ]
-        obj = Objective(coefficients=objective_coefficients, sense=ObjectiveSense(objective_sense))
+        obj = Objective(
+            coefficients=objective_coefficients, sense=ObjectiveSense(objective_sense)
+        )
         problem = LPProblem(variables=vars_, constraints=constrs, objective=obj)
 
         solution = LinearSolver().solve(problem)
 
-        results.append({
-            "value": pval,
-            "objective": solution.objective_value,
-            "feasible": solution.status in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE),
-        })
+        results.append(
+            {
+                "value": pval,
+                "objective": solution.objective_value,
+                "feasible": solution.status
+                in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE),
+            }
+        )
 
     return WhatIfResult(
         parameter_name=parameter_name,
@@ -120,7 +127,9 @@ def diagnose_infeasibility(
         )
         for c in constraints
     ]
-    obj = Objective(coefficients=objective_coefficients, sense=ObjectiveSense(objective_sense))
+    obj = Objective(
+        coefficients=objective_coefficients, sense=ObjectiveSense(objective_sense)
+    )
     problem = LPProblem(variables=vars_, constraints=constrs, objective=obj)
 
     solution = LinearSolver().solve(problem)
@@ -134,7 +143,7 @@ def diagnose_infeasibility(
 
     for i, c in enumerate(constraints):
         # Try without this constraint
-        reduced_constraints = constraints[:i] + constraints[i + 1:]
+        reduced_constraints = constraints[:i] + constraints[i + 1 :]
         if not reduced_constraints:
             continue
 
@@ -147,7 +156,9 @@ def diagnose_infeasibility(
             )
             for rc in reduced_constraints
         ]
-        reduced_problem = LPProblem(variables=vars_, constraints=reduced_constrs, objective=obj)
+        reduced_problem = LPProblem(
+            variables=vars_, constraints=reduced_constrs, objective=obj
+        )
         reduced_solution = LinearSolver().solve(reduced_problem)
 
         if reduced_solution.status in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
@@ -207,7 +218,9 @@ def solve_rcpsp(
         name = t["name"]
         starts[name] = model.new_int_var(0, horizon, f"start_{name}")
         ends[name] = model.new_int_var(0, horizon, f"end_{name}")
-        intervals[name] = model.new_interval_var(starts[name], t["duration"], ends[name], f"interval_{name}")
+        intervals[name] = model.new_interval_var(
+            starts[name], t["duration"], ends[name], f"interval_{name}"
+        )
 
     # Precedence constraints
     for t in tasks:
@@ -239,7 +252,11 @@ def solve_rcpsp(
         return {"status": "infeasible", "solve_time_ms": elapsed}
 
     schedule = [
-        {"task": t["name"], "start": solver.value(starts[t["name"]]), "end": solver.value(ends[t["name"]])}
+        {
+            "task": t["name"],
+            "start": solver.value(starts[t["name"]]),
+            "end": solver.value(ends[t["name"]]),
+        }
         for t in tasks
     ]
 
@@ -361,7 +378,9 @@ def find_alternative_solutions(
         else:
             solver.Add(expr == c["rhs"])
 
-    obj_expr = sum(coef * var_map[name] for name, coef in objective_coefficients.items())
+    obj_expr = sum(
+        coef * var_map[name] for name, coef in objective_coefficients.items()
+    )
     if objective_sense == "maximize":
         solver.Maximize(obj_expr)
     else:
@@ -372,11 +391,15 @@ def find_alternative_solutions(
         return solutions
 
     optimal_obj = solver.Objective().Value()
-    solutions.append({
-        "objective": round(optimal_obj, 6),
-        "variables": {name: round(var.solution_value(), 6) for name, var in var_map.items()},
-        "is_optimal": True,
-    })
+    solutions.append(
+        {
+            "objective": round(optimal_obj, 6),
+            "variables": {
+                name: round(var.solution_value(), 6) for name, var in var_map.items()
+            },
+            "is_optimal": True,
+        }
+    )
 
     # Add constraint to exclude current solution and find alternatives
     for _ in range(max_solutions - 1):
@@ -389,7 +412,8 @@ def find_alternative_solutions(
         prev_sol = solutions[-1]["variables"]
         cut_expr = sum(
             var_map[name] if prev_sol[name] < 0.5 else (1 - var_map[name])
-            for name in int_vars if name in prev_sol
+            for name in int_vars
+            if name in prev_sol
         )
         solver.Add(cut_expr >= 1)
 
@@ -403,10 +427,15 @@ def find_alternative_solutions(
         if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
             break
 
-        solutions.append({
-            "objective": round(solver.Objective().Value(), 6),
-            "variables": {name: round(var.solution_value(), 6) for name, var in var_map.items()},
-            "is_optimal": False,
-        })
+        solutions.append(
+            {
+                "objective": round(solver.Objective().Value(), 6),
+                "variables": {
+                    name: round(var.solution_value(), 6)
+                    for name, var in var_map.items()
+                },
+                "is_optimal": False,
+            }
+        )
 
     return solutions

@@ -79,8 +79,7 @@ class LinearSolver:
                     for name, ct in constraint_map.items()
                 },
                 reduced_costs={
-                    name: round(var.reduced_cost(), 6)
-                    for name, var in var_map.items()
+                    name: round(var.reduced_cost(), 6) for name, var in var_map.items()
                 },
                 solve_time_ms=solver.wall_time(),
                 iterations=solver.iterations(),

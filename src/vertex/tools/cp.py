@@ -18,7 +18,9 @@ class NQueensResult(BaseModel):
     """Result of N-Queens problem."""
 
     status: SolverStatus
-    queens: list[int] = Field(default_factory=list, description="Column position for each row")
+    queens: list[int] = Field(
+        default_factory=list, description="Column position for each row"
+    )
     solve_time_ms: float | None = None
 
 
@@ -57,10 +59,13 @@ def solve_sudoku(grid: list[list[int]]) -> SudokuResult:
     # 3x3 box constraints
     for box_i in range(3):
         for box_j in range(3):
-            model.add_all_different([
-                cells[(box_i * 3 + i, box_j * 3 + j)]
-                for i in range(3) for j in range(3)
-            ])
+            model.add_all_different(
+                [
+                    cells[(box_i * 3 + i, box_j * 3 + j)]
+                    for i in range(3)
+                    for j in range(3)
+                ]
+            )
 
     solver = cp_model.CpSolver()
     status = solver.solve(model)

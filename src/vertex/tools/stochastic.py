@@ -35,10 +35,10 @@ def compute_two_stage_stochastic(
 ) -> TwoStageResult:
     """
     Solve two-stage stochastic program with recourse for production planning under demand uncertainty.
-    
+
     First stage: Decide production quantities before demand is revealed.
     Second stage: After demand realizes, handle shortages/surpluses.
-    
+
     Args:
         products: List of product names
         scenarios: List of scenarios, each with {name, probability, demand: {product: qty}}
@@ -46,13 +46,18 @@ def compute_two_stage_stochastic(
         shortage_costs: Penalty per unit of unmet demand
         holding_costs: Cost per unit of excess inventory
         capacity: Optional production capacity limits
-    
+
     Returns:
         Optimal first-stage production and expected recourse costs
     """
     scenario_objs = [Scenario(**s) for s in scenarios]
     return solve_two_stage_stochastic(
-        products, scenario_objs, production_costs, shortage_costs, holding_costs, capacity
+        products,
+        scenario_objs,
+        production_costs,
+        shortage_costs,
+        holding_costs,
+        capacity,
     )
 
 
@@ -65,17 +70,17 @@ def compute_newsvendor(
 ) -> NewsvendorResult:
     """
     Solve the newsvendor (single-period stochastic inventory) problem.
-    
+
     Classic OR model for perishable goods: how much to order when demand is uncertain
     and unsold items have salvage value.
-    
+
     Args:
         selling_price: Revenue per unit sold
         cost: Purchase/production cost per unit
         salvage_value: Value recovered per unsold unit
         mean_demand: Expected demand (normal distribution)
         std_demand: Standard deviation of demand
-    
+
     Returns:
         Optimal order quantity, expected profit, and critical ratio
     """
@@ -90,16 +95,16 @@ def compute_lot_sizing(
 ) -> LotSizingResult:
     """
     Solve dynamic lot sizing using Wagner-Whitin algorithm.
-    
+
     Determines when and how much to produce over multiple periods to minimize
     total setup, production, and holding costs.
-    
+
     Args:
         demands: Demand for each period
         setup_cost: Fixed cost incurred when production occurs
         holding_cost: Cost per unit per period held in inventory
         production_cost: Variable cost per unit produced (optional)
-    
+
     Returns:
         Optimal production schedule and total cost
     """
@@ -117,10 +122,10 @@ def solve_robust_optimization(
 ) -> RobustResult:
     """
     Solve robust optimization with budget uncertainty set.
-    
+
     Protects against worst-case demand within uncertainty budget.
     Uses Bertsimas-Sim approach: at most Gamma parameters deviate.
-    
+
     Args:
         products: Product names
         nominal_demand: Expected demand per product
@@ -129,14 +134,20 @@ def solve_robust_optimization(
         production_costs: Cost per unit
         selling_prices: Revenue per unit sold
         capacity: Optional production limits
-    
+
     Returns:
         Robust solution protecting against worst-case scenarios
     """
     from vertex.solvers.stochastic import solve_robust
+
     return solve_robust(
-        products, nominal_demand, demand_deviation, uncertainty_budget,
-        production_costs, selling_prices, capacity
+        products,
+        nominal_demand,
+        demand_deviation,
+        uncertainty_budget,
+        production_costs,
+        selling_prices,
+        capacity,
     )
 
 
@@ -146,15 +157,16 @@ def analyze_queue_mm1(
 ) -> QueueMetrics:
     """
     Analyze M/M/1 queue (single server, Poisson arrivals, exponential service).
-    
+
     Args:
         arrival_rate: Lambda - average arrivals per time unit
         service_rate: Mu - average services per time unit
-    
+
     Returns:
         Queue performance metrics
     """
     from vertex.solvers.stochastic import compute_mm1_metrics
+
     return compute_mm1_metrics(arrival_rate, service_rate)
 
 
@@ -165,16 +177,17 @@ def analyze_queue_mmc(
 ) -> QueueMetrics:
     """
     Analyze M/M/c queue (multiple servers, Poisson arrivals, exponential service).
-    
+
     Args:
         arrival_rate: Lambda - average arrivals per time unit
         service_rate: Mu - average services per time unit per server
         num_servers: c - number of parallel servers
-    
+
     Returns:
         Queue performance metrics
     """
     from vertex.solvers.stochastic import compute_mmc_metrics
+
     return compute_mmc_metrics(arrival_rate, service_rate, num_servers)
 
 
@@ -189,9 +202,9 @@ def simulate_newsvendor_monte_carlo(
 ) -> "MonteCarloResult":
     """
     Run Monte Carlo simulation for newsvendor profit distribution.
-    
+
     Evaluates a given order quantity under demand uncertainty.
-    
+
     Args:
         selling_price: Revenue per unit sold
         cost: Purchase cost per unit
@@ -200,14 +213,20 @@ def simulate_newsvendor_monte_carlo(
         mean_demand: Expected demand
         std_demand: Demand standard deviation
         num_simulations: Number of simulation runs
-    
+
     Returns:
         Profit distribution statistics and risk metrics
     """
     from vertex.solvers.stochastic import run_monte_carlo_newsvendor
+
     return run_monte_carlo_newsvendor(
-        selling_price, cost, salvage_value, order_quantity,
-        mean_demand, std_demand, num_simulations
+        selling_price,
+        cost,
+        salvage_value,
+        order_quantity,
+        mean_demand,
+        std_demand,
+        num_simulations,
     )
 
 
@@ -223,7 +242,7 @@ def simulate_production_monte_carlo(
 ) -> "MonteCarloResult":
     """
     Run Monte Carlo simulation for multi-product production planning.
-    
+
     Args:
         products: Product names
         production_quantities: Quantities to produce (decision to evaluate)
@@ -233,14 +252,21 @@ def simulate_production_monte_carlo(
         production_costs: Cost per unit produced
         shortage_costs: Penalty per unit of unmet demand
         num_simulations: Number of simulation runs
-    
+
     Returns:
         Profit distribution statistics and risk metrics
     """
     from vertex.solvers.stochastic import run_monte_carlo_production
+
     return run_monte_carlo_production(
-        products, production_quantities, mean_demands, std_demands,
-        selling_prices, production_costs, shortage_costs, num_simulations
+        products,
+        production_quantities,
+        mean_demands,
+        std_demands,
+        selling_prices,
+        production_costs,
+        shortage_costs,
+        num_simulations,
     )
 
 
@@ -257,7 +283,7 @@ def schedule_crew(
 ) -> "CrewScheduleResult":
     """
     Solve crew/shift scheduling with constraints.
-    
+
     Args:
         workers: Worker names
         days: Number of days to schedule
@@ -268,14 +294,22 @@ def schedule_crew(
         max_shifts_per_worker: Maximum shifts per worker over period
         min_rest_between_shifts: Minimum rest periods between shifts
         time_limit_seconds: Solver time limit
-    
+
     Returns:
         Worker assignments and coverage
     """
     from vertex.solvers.stochastic import solve_crew_scheduling
+
     return solve_crew_scheduling(
-        workers, days, shifts, requirements, worker_availability,
-        costs, max_shifts_per_worker, min_rest_between_shifts, time_limit_seconds
+        workers,
+        days,
+        shifts,
+        requirements,
+        worker_availability,
+        costs,
+        max_shifts_per_worker,
+        min_rest_between_shifts,
+        time_limit_seconds,
     )
 
 
@@ -290,9 +324,9 @@ def solve_chance_constrained_production(
 ) -> "ChanceConstrainedResult":
     """
     Solve chance-constrained production planning.
-    
+
     Ensures P(production >= demand) >= service_level for each product.
-    
+
     Args:
         products: Product names
         mean_demands: Expected demand per product
@@ -301,14 +335,20 @@ def solve_chance_constrained_production(
         selling_prices: Revenue per unit sold
         service_level: Required probability of meeting demand (default 0.95)
         capacity: Optional production limits
-    
+
     Returns:
         Production plan with constraint satisfaction probabilities
     """
     from vertex.solvers.stochastic import solve_chance_constrained
+
     return solve_chance_constrained(
-        products, mean_demands, std_demands, production_costs,
-        selling_prices, service_level, capacity
+        products,
+        mean_demands,
+        std_demands,
+        production_costs,
+        selling_prices,
+        service_level,
+        capacity,
     )
 
 
@@ -322,7 +362,7 @@ def pack_rectangles_2d(
 ) -> "BinPacking2DResult":
     """
     Solve 2D bin packing - pack rectangles into bins.
-    
+
     Args:
         rectangles: List of {name, width, height}
         bin_width: Width of each bin
@@ -330,14 +370,14 @@ def pack_rectangles_2d(
         max_bins: Maximum bins available
         allow_rotation: Allow 90-degree rotation
         time_limit_seconds: Solver time limit
-    
+
     Returns:
         Rectangle placements and bin utilization
     """
     from vertex.solvers.stochastic import solve_2d_bin_packing
+
     return solve_2d_bin_packing(
-        rectangles, bin_width, bin_height, max_bins,
-        allow_rotation, time_limit_seconds
+        rectangles, bin_width, bin_height, max_bins, allow_rotation, time_limit_seconds
     )
 
 
@@ -352,7 +392,7 @@ def design_network(
 ) -> "NetworkDesignResult":
     """
     Solve capacitated network design - decide which arcs to build.
-    
+
     Args:
         nodes: Node names
         potential_arcs: List of {source, target} potential arcs
@@ -361,15 +401,16 @@ def design_network(
         arc_capacities: Capacity of each arc
         arc_variable_costs: Cost per unit flow
         time_limit_seconds: Solver time limit
-    
+
     Returns:
         Which arcs to open and flow routing
     """
     from vertex.solvers.stochastic import solve_network_design
+
     # Convert string keys to tuples
-    fixed = {tuple(k.split("->")):v for k,v in arc_fixed_costs.items()}
-    caps = {tuple(k.split("->")):v for k,v in arc_capacities.items()}
-    var = {tuple(k.split("->")):v for k,v in arc_variable_costs.items()}
+    fixed = {tuple(k.split("->")): v for k, v in arc_fixed_costs.items()}
+    caps = {tuple(k.split("->")): v for k, v in arc_capacities.items()}
+    var = {tuple(k.split("->")): v for k, v in arc_variable_costs.items()}
     return solve_network_design(
         nodes, potential_arcs, commodities, fixed, caps, var, time_limit_seconds
     )
@@ -384,22 +425,25 @@ def solve_quadratic_assignment(
 ) -> "QAPResult":
     """
     Solve Quadratic Assignment Problem - assign facilities to locations.
-    
+
     Minimizes total cost = sum of flow[i][k] * distance[j][l] for all pairs
     where facility i is at location j and facility k is at location l.
-    
+
     Args:
         facilities: Facility names
         locations: Location names (same count as facilities)
         flow_matrix: flow_matrix[f1][f2] = flow between facilities
         distance_matrix: distance_matrix[l1][l2] = distance between locations
         time_limit_seconds: Solver time limit
-    
+
     Returns:
         Facility-to-location assignment minimizing flow*distance
     """
     from vertex.solvers.stochastic import solve_qap
-    return solve_qap(facilities, locations, flow_matrix, distance_matrix, time_limit_seconds)
+
+    return solve_qap(
+        facilities, locations, flow_matrix, distance_matrix, time_limit_seconds
+    )
 
 
 def find_steiner_tree(
@@ -410,19 +454,20 @@ def find_steiner_tree(
 ) -> "SteinerTreeResult":
     """
     Solve Steiner Tree - connect terminal nodes with minimum total edge weight.
-    
+
     May use non-terminal (Steiner) nodes if it reduces total cost.
-    
+
     Args:
         nodes: All node names
         edges: List of {source, target, weight}
         terminals: Nodes that must be connected
         time_limit_seconds: Solver time limit
-    
+
     Returns:
         Minimum weight tree connecting all terminals
     """
     from vertex.solvers.stochastic import solve_steiner_tree
+
     return solve_steiner_tree(nodes, edges, terminals, time_limit_seconds)
 
 
@@ -436,7 +481,7 @@ def optimize_multi_echelon_inventory(
 ) -> "MultiEchelonResult":
     """
     Optimize multi-echelon inventory - compute base-stock levels.
-    
+
     Args:
         locations: Location names (warehouses, DCs, stores)
         parent: parent[loc] = upstream location (None for top)
@@ -444,11 +489,12 @@ def optimize_multi_echelon_inventory(
         lead_times: Replenishment lead time for each location
         holding_costs: Holding cost per unit at each location
         service_levels: Target service level (fill rate) per location
-    
+
     Returns:
         Base-stock levels and expected fill rates
     """
     from vertex.solvers.stochastic import solve_multi_echelon_inventory
+
     return solve_multi_echelon_inventory(
         locations, parent, demands, lead_times, holding_costs, service_levels
     )
@@ -467,10 +513,10 @@ def solve_quadratic_program(
 ) -> "QPResult":
     """
     Solve Quadratic Programming problem.
-    
+
     Minimizes: 0.5 * x'Qx + c'x
     Subject to: A_eq @ x = b_eq, A_ineq @ x <= b_ineq, lb <= x <= ub
-    
+
     Args:
         variables: Variable names
         Q: Quadratic coefficient matrix (n x n), must be positive semi-definite
@@ -478,12 +524,15 @@ def solve_quadratic_program(
         A_eq, b_eq: Equality constraints
         A_ineq, b_ineq: Inequality constraints
         lower_bounds, upper_bounds: Variable bounds
-    
+
     Returns:
         Optimal solution and objective value
     """
     from vertex.solvers.stochastic import solve_qp
-    return solve_qp(variables, Q, c, A_eq, b_eq, A_ineq, b_ineq, lower_bounds, upper_bounds)
+
+    return solve_qp(
+        variables, Q, c, A_eq, b_eq, A_ineq, b_ineq, lower_bounds, upper_bounds
+    )
 
 
 def optimize_portfolio_qp(
@@ -498,7 +547,7 @@ def optimize_portfolio_qp(
 ) -> "PortfolioQPResult":
     """
     Solve Markowitz mean-variance portfolio optimization.
-    
+
     Args:
         assets: Asset names
         expected_returns: Expected return for each asset
@@ -508,12 +557,19 @@ def optimize_portfolio_qp(
         risk_free_rate: Risk-free rate for Sharpe ratio calculation
         max_weight: Maximum weight per asset (default 1.0)
         min_weight: Minimum weight per asset (default 0.0, no short selling)
-    
+
     Returns:
         Optimal portfolio weights, expected return, variance, and Sharpe ratio
     """
     from vertex.solvers.stochastic import solve_portfolio_qp
+
     return solve_portfolio_qp(
-        assets, expected_returns, covariance_matrix, target_return,
-        risk_aversion, risk_free_rate, max_weight, min_weight
+        assets,
+        expected_returns,
+        covariance_matrix,
+        target_return,
+        risk_aversion,
+        risk_free_rate,
+        max_weight,
+        min_weight,
     )

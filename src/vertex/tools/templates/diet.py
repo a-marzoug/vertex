@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field
 
 from vertex.config import ConstraintSense, ObjectiveSense
-from vertex.models.linear import Constraint, LPProblem, LPSolution, Objective, Variable
+from vertex.models.linear import Constraint, LPProblem, Objective, Variable
 from vertex.solvers.linear import LinearSolver
 
 
@@ -52,7 +52,9 @@ def optimize_diet(
         if nutrient in min_requirements:
             constraints.append(
                 Constraint(
-                    coefficients={f: nutrition_values[f].get(nutrient, 0) for f in foods},
+                    coefficients={
+                        f: nutrition_values[f].get(nutrient, 0) for f in foods
+                    },
                     sense=ConstraintSense.GEQ,
                     rhs=min_requirements[nutrient],
                     name=f"min_{nutrient}",
@@ -64,7 +66,9 @@ def optimize_diet(
         for nutrient, limit in max_limits.items():
             constraints.append(
                 Constraint(
-                    coefficients={f: nutrition_values[f].get(nutrient, 0) for f in foods},
+                    coefficients={
+                        f: nutrition_values[f].get(nutrient, 0) for f in foods
+                    },
                     sense=ConstraintSense.LEQ,
                     rhs=limit,
                     name=f"max_{nutrient}",
@@ -87,7 +91,8 @@ def optimize_diet(
     if solution.variable_values:
         for nutrient in nutrients:
             nutrient_intake[nutrient] = sum(
-                nutrition_values[f].get(nutrient, 0) * solution.variable_values.get(f, 0)
+                nutrition_values[f].get(nutrient, 0)
+                * solution.variable_values.get(f, 0)
                 for f in foods
             )
 

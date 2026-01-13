@@ -44,7 +44,9 @@ def optimize_resource_allocation(
     if not solver:
         return ResourceAllocationResult(status=SolverStatus.ERROR)
 
-    effectiveness = effectiveness or {loc: {r: 1.0 for r in resources} for loc in locations}
+    effectiveness = effectiveness or {
+        loc: {r: 1.0 for r in resources} for loc in locations
+    }
 
     # Variables: x[r][l] = amount of resource r allocated to location l
     x = {}
@@ -61,13 +63,18 @@ def optimize_resource_allocation(
         for loc in locations:
             for r in resources:
                 if demands.get(loc, {}).get(r, 0) > 0:
-                    solver.Add(x[(r, loc)] >= min_coverage.get(loc, 0) * demands[loc][r])
+                    solver.Add(
+                        x[(r, loc)] >= min_coverage.get(loc, 0) * demands[loc][r]
+                    )
 
     # Maximize weighted coverage
-    solver.Maximize(sum(
-        effectiveness.get(loc, {}).get(r, 1.0) * x[(r, loc)]
-        for r in resources for loc in locations
-    ))
+    solver.Maximize(
+        sum(
+            effectiveness.get(loc, {}).get(r, 1.0) * x[(r, loc)]
+            for r in resources
+            for loc in locations
+        )
+    )
 
     status = solver.Solve()
 
@@ -87,7 +94,9 @@ def optimize_resource_allocation(
                 unmet[f"{loc}_{r}"] = round(demand - val, 2)
 
     return ResourceAllocationResult(
-        status=SolverStatus.OPTIMAL if status == pywraplp.Solver.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == pywraplp.Solver.OPTIMAL
+        else SolverStatus.FEASIBLE,
         allocations=allocations,
         total_coverage=round(solver.Objective().Value(), 2),
         unmet_demand=unmet,

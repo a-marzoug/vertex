@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field
 
 from vertex.config import ConstraintSense, ObjectiveSense, SolverStatus
-from vertex.models.linear import Constraint, LPProblem, LPSolution, Objective, Variable
+from vertex.models.linear import Constraint, LPProblem, Objective, Variable
 from vertex.solvers.linear import LinearSolver
 
 
@@ -13,7 +13,7 @@ class SensitivityReport(BaseModel):
     status: SolverStatus
     objective_value: float | None = None
     variable_values: dict[str, float] = Field(default_factory=dict)
-    
+
     # Constraint analysis
     binding_constraints: list[str] = Field(
         default_factory=list,
@@ -27,7 +27,7 @@ class SensitivityReport(BaseModel):
         default_factory=dict,
         description="Marginal value of relaxing each constraint by one unit",
     )
-    
+
     # Variable analysis
     basic_variables: list[str] = Field(
         default_factory=list,
@@ -51,7 +51,7 @@ def analyze_sensitivity(
 ) -> SensitivityReport:
     """
     Perform sensitivity analysis on an LP problem.
-    
+
     Returns shadow prices (dual values) and reduced costs to help understand:
     - Which constraints are limiting the solution
     - How much the objective would improve if constraints were relaxed
@@ -73,13 +73,13 @@ def analyze_sensitivity(
         sense=ObjectiveSense(objective_sense),
     )
     problem = LPProblem(variables=vars_, constraints=constrs, objective=obj)
-    
+
     # Solve
     solution = LinearSolver().solve(problem)
-    
+
     if solution.status not in (SolverStatus.OPTIMAL, SolverStatus.FEASIBLE):
         return SensitivityReport(status=solution.status)
-    
+
     # Classify constraints
     binding = []
     slack = []
@@ -88,7 +88,7 @@ def analyze_sensitivity(
             binding.append(name)
         else:
             slack.append(name)
-    
+
     # Classify variables
     basic = []
     nonbasic = []
@@ -97,7 +97,7 @@ def analyze_sensitivity(
             basic.append(name)
         else:
             nonbasic.append(name)
-    
+
     return SensitivityReport(
         status=solution.status,
         objective_value=solution.objective_value,

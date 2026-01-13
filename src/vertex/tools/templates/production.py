@@ -3,7 +3,7 @@
 from pydantic import BaseModel, Field
 
 from vertex.config import ConstraintSense, ObjectiveSense
-from vertex.models.linear import Constraint, LPProblem, LPSolution, Objective, Variable
+from vertex.models.linear import Constraint, LPProblem, Objective, Variable
 from vertex.solvers.linear import LinearSolver
 
 
@@ -12,7 +12,9 @@ class ProductionResult(BaseModel):
 
     status: str = Field(description="Solver status")
     total_profit: float | None = Field(description="Maximum achievable profit")
-    production_plan: dict[str, float] = Field(description="Units to produce per product")
+    production_plan: dict[str, float] = Field(
+        description="Units to produce per product"
+    )
     resource_usage: dict[str, float] = Field(description="Resource consumption")
     solve_time_ms: float | None = Field(description="Solve time in milliseconds")
 

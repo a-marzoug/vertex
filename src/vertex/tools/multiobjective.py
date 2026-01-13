@@ -56,7 +56,10 @@ def solve_multi_objective(
 
         # Combine objectives
         combined = {}
-        for var in set(list(objectives[obj_names[0]].keys()) + list(objectives[obj_names[1]].keys())):
+        for var in set(
+            list(objectives[obj_names[0]].keys())
+            + list(objectives[obj_names[1]].keys())
+        ):
             c1 = objectives[obj_names[0]].get(var, 0)
             c2 = objectives[obj_names[1]].get(var, 0)
             # Flip sign for minimization objectives
@@ -85,21 +88,30 @@ def solve_multi_objective(
             # Calculate actual objective values
             obj_vals = {}
             for name, coeffs in objectives.items():
-                val = sum(coeffs.get(v, 0) * solution.variable_values.get(v, 0) for v in solution.variable_values)
+                val = sum(
+                    coeffs.get(v, 0) * solution.variable_values.get(v, 0)
+                    for v in solution.variable_values
+                )
                 obj_vals[name] = round(val, 4)
 
             # Check if this is a new Pareto point
             is_new = True
             for existing in pareto_points:
-                if all(abs(existing.objectives[n] - obj_vals[n]) < 0.001 for n in obj_names):
+                if all(
+                    abs(existing.objectives[n] - obj_vals[n]) < 0.001 for n in obj_names
+                ):
                     is_new = False
                     break
 
             if is_new:
-                pareto_points.append(ParetoPoint(
-                    objectives=obj_vals,
-                    variables={k: round(v, 4) for k, v in solution.variable_values.items()},
-                ))
+                pareto_points.append(
+                    ParetoPoint(
+                        objectives=obj_vals,
+                        variables={
+                            k: round(v, 4) for k, v in solution.variable_values.items()
+                        },
+                    )
+                )
 
     if not pareto_points:
         return MultiObjectiveResult(status=SolverStatus.INFEASIBLE)

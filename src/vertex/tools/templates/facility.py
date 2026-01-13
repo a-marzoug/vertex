@@ -43,7 +43,9 @@ def optimize_facility_location(
     # Binary: assign customer to facility
     for f in facilities:
         for c in customers:
-            variables.append(MIPVariable(name=f"assign_{f}_{c}", var_type=VariableType.BINARY))
+            variables.append(
+                MIPVariable(name=f"assign_{f}_{c}", var_type=VariableType.BINARY)
+            )
 
     constraints = []
     # Each customer assigned to exactly one facility
@@ -75,7 +77,9 @@ def optimize_facility_location(
     problem = MIPProblem(
         variables=variables,
         constraints=constraints,
-        objective=MIPObjective(coefficients=obj_coefficients, sense=ObjectiveSense.MINIMIZE),
+        objective=MIPObjective(
+            coefficients=obj_coefficients, sense=ObjectiveSense.MINIMIZE
+        ),
     )
 
     solution = MIPSolver().solve(problem)

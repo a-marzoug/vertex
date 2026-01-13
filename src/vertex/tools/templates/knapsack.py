@@ -36,7 +36,9 @@ def optimize_knapsack(
         KnapsackResult with selected items and total value.
     """
     problem = MIPProblem(
-        variables=[MIPVariable(name=item, var_type=VariableType.BINARY) for item in items],
+        variables=[
+            MIPVariable(name=item, var_type=VariableType.BINARY) for item in items
+        ],
         constraints=[
             MIPConstraint(
                 coefficients=weights,

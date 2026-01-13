@@ -147,4 +147,6 @@ def compute_transshipment(
     """
     from vertex.solvers.network import solve_transshipment
 
-    return solve_transshipment(sources, transshipment_nodes, destinations, supplies, demands, costs, capacities)
+    return solve_transshipment(
+        sources, transshipment_nodes, destinations, supplies, demands, costs, capacities
+    )

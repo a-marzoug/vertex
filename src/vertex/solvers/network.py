@@ -120,7 +120,9 @@ def solve_min_cost_flow(
     return MinCostFlowResult(
         status=SolverStatus.OPTIMAL,
         total_cost=float(smcf.optimal_cost()),
-        total_flow=float(sum(supplies.get(n, 0) for n in nodes if supplies.get(n, 0) > 0)),
+        total_flow=float(
+            sum(supplies.get(n, 0) for n in nodes if supplies.get(n, 0) > 0)
+        ),
         arc_flows=arc_flows,
         solve_time_ms=solve_time,
     )
@@ -166,7 +168,9 @@ def solve_shortest_path(
     solve_time = (time.time() - start_time) * 1000
 
     if status != smcf.OPTIMAL:
-        return ShortestPathResult(status=SolverStatus.INFEASIBLE, solve_time_ms=solve_time)
+        return ShortestPathResult(
+            status=SolverStatus.INFEASIBLE, solve_time_ms=solve_time
+        )
 
     # Reconstruct path
     path_edges = []
@@ -241,11 +245,13 @@ def solve_mst(
 
     for edge in sorted_edges:
         if union(edge["source"], edge["target"]):
-            mst_edges.append(MSTEdge(
-                source=edge["source"],
-                target=edge["target"],
-                weight=edge["weight"],
-            ))
+            mst_edges.append(
+                MSTEdge(
+                    source=edge["source"],
+                    target=edge["target"],
+                    weight=edge["weight"],
+                )
+            )
             total_weight += edge["weight"]
             if len(mst_edges) == len(nodes) - 1:
                 break
@@ -302,13 +308,19 @@ def solve_multi_commodity_flow(
 
     # Capacity constraints: sum of all commodities on arc <= capacity
     for i, arc in enumerate(arcs):
-        solver.Add(sum(flow[(k, i)] for k in range(len(commodities))) <= arc["capacity"])
+        solver.Add(
+            sum(flow[(k, i)] for k in range(len(commodities))) <= arc["capacity"]
+        )
 
     # Flow conservation for each commodity
     for k, comm in enumerate(commodities):
         for j, node in enumerate(nodes):
-            inflow = sum(flow[(k, i)] for i, a in enumerate(arcs) if a["target"] == node)
-            outflow = sum(flow[(k, i)] for i, a in enumerate(arcs) if a["source"] == node)
+            inflow = sum(
+                flow[(k, i)] for i, a in enumerate(arcs) if a["target"] == node
+            )
+            outflow = sum(
+                flow[(k, i)] for i, a in enumerate(arcs) if a["source"] == node
+            )
 
             if node == comm["source"]:
                 solver.Add(outflow - inflow == comm["demand"])
@@ -318,18 +330,22 @@ def solve_multi_commodity_flow(
                 solver.Add(inflow == outflow)
 
     # Minimize total cost
-    solver.Minimize(sum(
-        flow[(k, i)] * arcs[i].get("cost", 0)
-        for k in range(len(commodities))
-        for i in range(len(arcs))
-    ))
+    solver.Minimize(
+        sum(
+            flow[(k, i)] * arcs[i].get("cost", 0)
+            for k in range(len(commodities))
+            for i in range(len(arcs))
+        )
+    )
 
     solver.set_time_limit(time_limit_seconds * 1000)
     status = solver.Solve()
     solve_time = (time.time() - start_time) * 1000
 
     if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
-        return MultiCommodityFlowResult(status=SolverStatus.INFEASIBLE, solve_time_ms=solve_time)
+        return MultiCommodityFlowResult(
+            status=SolverStatus.INFEASIBLE, solve_time_ms=solve_time
+        )
 
     commodity_flows = {}
     for k, comm in enumerate(commodities):
@@ -340,7 +356,9 @@ def solve_multi_commodity_flow(
         commodity_flows[comm["name"]] = arc_flows
 
     return MultiCommodityFlowResult(
-        status=SolverStatus.OPTIMAL if status == pywraplp.Solver.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == pywraplp.Solver.OPTIMAL
+        else SolverStatus.FEASIBLE,
         total_cost=round(solver.Objective().Value(), 6),
         commodity_flows=commodity_flows,
         solve_time_ms=solve_time,
@@ -371,7 +389,6 @@ def solve_transshipment(
     Returns:
         MinCostFlowResult with flows and total cost.
     """
-    from vertex.models.network import MinCostFlowResult
 
     all_nodes = sources + transshipment_nodes + destinations
 
@@ -380,7 +397,9 @@ def solve_transshipment(
     for src, dests in costs.items():
         for dst, cost in dests.items():
             cap = capacities.get(src, {}).get(dst, 10000) if capacities else 10000
-            arcs.append({"source": src, "target": dst, "capacity": int(cap), "cost": int(cost)})
+            arcs.append(
+                {"source": src, "target": dst, "capacity": int(cap), "cost": int(cost)}
+            )
 
     # Build supplies dict (sources positive, destinations negative)
     node_supplies = {}

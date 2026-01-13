@@ -50,7 +50,11 @@ def optimize_supply_chain(
 
     # Variables
     y = {f: solver.BoolVar(f"open_{f}") for f in facilities}
-    x = {(f, c): solver.NumVar(0, demands[c], f"flow_{f}_{c}") for f in facilities for c in customers}
+    x = {
+        (f, c): solver.NumVar(0, demands[c], f"flow_{f}_{c}")
+        for f in facilities
+        for c in customers
+    }
 
     # Meet all demands
     for c in customers:
@@ -66,7 +70,9 @@ def optimize_supply_chain(
 
     # Minimize total cost
     fixed = sum(fixed_costs[f] * y[f] for f in facilities)
-    transport = sum(transport_costs[f][c] * x[(f, c)] for f in facilities for c in customers)
+    transport = sum(
+        transport_costs[f][c] * x[(f, c)] for f in facilities for c in customers
+    )
     solver.Minimize(fixed + transport)
 
     status = solver.Solve()
@@ -86,11 +92,14 @@ def optimize_supply_chain(
     fixed_val = sum(fixed_costs[f] for f in open_fac)
     transport_val = sum(
         transport_costs[f][c] * x[(f, c)].solution_value()
-        for f in facilities for c in customers
+        for f in facilities
+        for c in customers
     )
 
     return SupplyChainResult(
-        status=SolverStatus.OPTIMAL if status == pywraplp.Solver.OPTIMAL else SolverStatus.FEASIBLE,
+        status=SolverStatus.OPTIMAL
+        if status == pywraplp.Solver.OPTIMAL
+        else SolverStatus.FEASIBLE,
         open_facilities=open_fac,
         flows={f: v for f, v in flows.items() if v},
         total_cost=round(fixed_val + transport_val, 2),

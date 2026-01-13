@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class Scenario(BaseModel):
     """A scenario with probability and parameter values."""
+
     name: str
     probability: float
     demand: dict[str, float]  # product -> demand
@@ -12,6 +13,7 @@ class Scenario(BaseModel):
 
 class TwoStageResult(BaseModel):
     """Result of two-stage stochastic programming."""
+
     status: str
     expected_cost: float
     first_stage_decisions: dict[str, float]  # e.g., production quantities
@@ -21,6 +23,7 @@ class TwoStageResult(BaseModel):
 
 class NewsvendorResult(BaseModel):
     """Result of newsvendor model."""
+
     status: str
     optimal_order_quantity: float
     expected_profit: float
@@ -30,6 +33,7 @@ class NewsvendorResult(BaseModel):
 
 class LotSizingResult(BaseModel):
     """Result of dynamic lot sizing (Wagner-Whitin)."""
+
     status: str
     total_cost: float
     production_plan: list[float]  # quantity per period
@@ -39,6 +43,7 @@ class LotSizingResult(BaseModel):
 
 class RobustResult(BaseModel):
     """Result of robust optimization."""
+
     status: str
     objective_value: float
     worst_case_objective: float
@@ -49,6 +54,7 @@ class RobustResult(BaseModel):
 
 class QueueMetrics(BaseModel):
     """Queueing system performance metrics."""
+
     utilization: float  # rho = lambda / (s * mu)
     avg_queue_length: float  # Lq
     avg_system_length: float  # L
@@ -60,6 +66,7 @@ class QueueMetrics(BaseModel):
 
 class MonteCarloResult(BaseModel):
     """Result of Monte Carlo simulation."""
+
     status: str
     num_simulations: int
     mean_objective: float
@@ -73,6 +80,7 @@ class MonteCarloResult(BaseModel):
 
 class CrewScheduleResult(BaseModel):
     """Result of crew/shift scheduling."""
+
     status: str
     total_cost: float
     assignments: dict[str, list[str]]  # worker -> list of (day, shift)
@@ -82,6 +90,7 @@ class CrewScheduleResult(BaseModel):
 
 class ChanceConstrainedResult(BaseModel):
     """Result of chance-constrained optimization."""
+
     status: str
     objective_value: float
     variable_values: dict[str, float]
@@ -91,6 +100,7 @@ class ChanceConstrainedResult(BaseModel):
 
 class Rectangle(BaseModel):
     """A rectangle for 2D bin packing."""
+
     name: str
     width: int
     height: int
@@ -98,6 +108,7 @@ class Rectangle(BaseModel):
 
 class RectanglePlacement(BaseModel):
     """Placement of a rectangle in a bin."""
+
     name: str
     bin_id: int
     x: int
@@ -109,6 +120,7 @@ class RectanglePlacement(BaseModel):
 
 class BinPacking2DResult(BaseModel):
     """Result of 2D bin packing."""
+
     status: str
     num_bins_used: int
     placements: list[RectanglePlacement]
@@ -118,6 +130,7 @@ class BinPacking2DResult(BaseModel):
 
 class NetworkDesignResult(BaseModel):
     """Result of network design optimization."""
+
     status: str
     total_cost: float
     opened_facilities: list[str]
@@ -128,6 +141,7 @@ class NetworkDesignResult(BaseModel):
 
 class QAPResult(BaseModel):
     """Result of Quadratic Assignment Problem."""
+
     status: str
     total_cost: float
     assignment: dict[str, str]  # facility -> location
@@ -136,6 +150,7 @@ class QAPResult(BaseModel):
 
 class SteinerTreeResult(BaseModel):
     """Result of Steiner Tree problem."""
+
     status: str
     total_weight: float
     edges: list[tuple[str, str, float]]  # (node1, node2, weight)
@@ -145,6 +160,7 @@ class SteinerTreeResult(BaseModel):
 
 class MultiEchelonResult(BaseModel):
     """Result of multi-echelon inventory optimization."""
+
     status: str
     total_cost: float
     base_stock_levels: dict[str, float]  # location -> stock level
@@ -154,6 +170,7 @@ class MultiEchelonResult(BaseModel):
 
 class QPResult(BaseModel):
     """Result of Quadratic Programming."""
+
     status: str
     objective_value: float
     variable_values: dict[str, float]
@@ -162,6 +179,7 @@ class QPResult(BaseModel):
 
 class PortfolioQPResult(BaseModel):
     """Result of portfolio optimization with covariance."""
+
     status: str
     expected_return: float
     portfolio_variance: float
