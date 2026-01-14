@@ -209,7 +209,7 @@ def solve_rcpsp(
     model = cp_model.CpModel()
 
     horizon = sum(t["duration"] for t in tasks)
-    task_idx = {t["name"]: i for i, t in enumerate(tasks)}
+    _task_idx = {t["name"]: i for i, t in enumerate(tasks)}
 
     # Variables
     starts = {}
