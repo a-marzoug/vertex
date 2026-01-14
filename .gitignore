@@ -8,3 +8,12 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Testing and Code Quality
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
