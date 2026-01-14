@@ -1,13 +1,27 @@
 """Solvers for stochastic and dynamic optimization problems."""
 
+from typing import Any
+
 import math
 
 from ortools.linear_solver import pywraplp
 
 from vertex.models.stochastic import (
+    BinPacking2DResult,
+    ChanceConstrainedResult,
+    CrewScheduleResult,
     LotSizingResult,
+    MonteCarloResult,
+    MultiEchelonResult,
+    NetworkDesignResult,
     NewsvendorResult,
+    PortfolioQPResult,
+    QAPResult,
+    QPResult,
+    QueueMetrics,
+    RobustResult,
     Scenario,
+    SteinerTreeResult,
     TwoStageResult,
 )
 
@@ -206,8 +220,8 @@ def solve_lot_sizing(
         if dp[j] == INF:
             continue
         # Try producing in period j to cover demands j..k
-        cumulative_holding = 0
-        cumulative_demand = 0
+        cumulative_holding = 0.0
+        cumulative_demand = 0.0
         for k in range(j, T):
             cumulative_demand += demands[k]
             # Holding cost for demand[k] held from period j to k
@@ -235,7 +249,7 @@ def solve_lot_sizing(
 
     # Calculate inventory levels
     inventory = [0.0] * T
-    current_inv = 0
+    current_inv = 0.0
     for t in range(T):
         current_inv += production_plan[t] - demands[t]
         inventory[t] = round(current_inv, 2)
@@ -594,7 +608,7 @@ def solve_crew_scheduling(
     status = solver.solve(model)
     elapsed = time.time() - start_time
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return CrewScheduleResult(
             status="INFEASIBLE",
             total_cost=0,
@@ -605,7 +619,7 @@ def solve_crew_scheduling(
 
     assignments = {w: [] for w in workers}
     coverage = {s: {d: 0 for d in range(days)} for s in shifts}
-    total_cost = 0
+    total_cost = 0.0
 
     for w in range(n_workers):
         for d in range(days):
@@ -616,7 +630,7 @@ def solve_crew_scheduling(
                     total_cost += costs[workers[w]]
 
     return CrewScheduleResult(
-        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",  # type: ignore[comparison-overlap]
         total_cost=round(total_cost, 2),
         assignments={w: a for w, a in assignments.items() if a},
         coverage=coverage,
@@ -712,7 +726,7 @@ def solve_chance_constrained(
 
 
 def solve_2d_bin_packing(
-    rectangles: list[dict],
+    rectangles: list[dict[str, Any]],
     bin_width: int,
     bin_height: int,
     max_bins: int | None = None,
@@ -806,7 +820,7 @@ def solve_2d_bin_packing(
     status = solver.solve(model)
     elapsed = time.time() - start
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return BinPacking2DResult(
             status="INFEASIBLE",
             num_bins_used=0,
@@ -843,7 +857,7 @@ def solve_2d_bin_packing(
     }
 
     return BinPacking2DResult(
-        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",  # type: ignore[comparison-overlap]
         num_bins_used=num_bins,
         placements=placements,
         bin_utilization=utilization,
@@ -853,8 +867,8 @@ def solve_2d_bin_packing(
 
 def solve_network_design(
     nodes: list[str],
-    potential_arcs: list[dict],
-    commodities: list[dict],
+    potential_arcs: list[dict[str, Any]],
+    commodities: list[dict[str, Any]],
     arc_fixed_costs: dict[tuple[str, str], float],
     arc_capacities: dict[tuple[str, str], float],
     arc_variable_costs: dict[tuple[str, str], float],
@@ -1033,7 +1047,7 @@ def solve_qap(
     status = solver.solve(model)
     elapsed = time.time() - start
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return QAPResult(
             status="INFEASIBLE", total_cost=0, assignment={}, solve_time=elapsed
         )
@@ -1045,7 +1059,7 @@ def solve_qap(
                 assignment[f] = l
 
     return QAPResult(
-        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",  # type: ignore[comparison-overlap]
         total_cost=solver.objective_value,
         assignment=assignment,
         solve_time=round(elapsed, 4),
@@ -1054,7 +1068,7 @@ def solve_qap(
 
 def solve_steiner_tree(
     nodes: list[str],
-    edges: list[dict],
+    edges: list[dict[str, Any]],
     terminals: list[str],
     time_limit_seconds: int = 30,
 ) -> "SteinerTreeResult":
@@ -1140,7 +1154,7 @@ def solve_steiner_tree(
     status = solver.solve(model)
     elapsed = time.time() - start
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return SteinerTreeResult(
             status="INFEASIBLE",
             total_weight=0,
@@ -1159,7 +1173,7 @@ def solve_steiner_tree(
     steiner = [n for n in nodes if solver.value(node_vars[n]) and n not in terminals]
 
     return SteinerTreeResult(
-        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",
+        status="OPTIMAL" if status == cp_model.OPTIMAL else "FEASIBLE",  # type: ignore[comparison-overlap]
         total_weight=solver.objective_value,
         edges=result_edges,
         steiner_nodes=steiner,
@@ -1257,7 +1271,7 @@ def solve_qp(
     c_np = np.array(c)
 
     # Objective: 0.5 * x'Qx + c'x
-    objective = 0.5 * cp.quad_form(x, Q_np) + c_np @ x
+    objective = 0.5 * cp.quad_form(x, Q_np) + c_np @ x  # type: ignore[attr-defined]
 
     constraints = []
 
@@ -1276,7 +1290,7 @@ def solve_qp(
     prob = cp.Problem(cp.Minimize(objective), constraints)
 
     try:
-        prob.solve()
+        prob.solve()  # type: ignore[no-untyped-call]
         elapsed = time.time() - start
 
         if prob.status not in [cp.OPTIMAL, cp.OPTIMAL_INACCURATE]:
@@ -1291,7 +1305,8 @@ def solve_qp(
             status="OPTIMAL",
             objective_value=round(prob.value, 6),
             variable_values={
-                variables[i]: round(float(x.value[i]), 6) for i in range(n)
+                variables[i]: round(float(x.value[i]), 6)
+                for i in range(n)  # type: ignore[index]
             },
             solve_time=round(elapsed, 4),
         )
@@ -1334,10 +1349,10 @@ def solve_portfolio_qp(
     cov = np.array(covariance_matrix)
 
     portfolio_return = ret @ w
-    portfolio_variance = cp.quad_form(w, cov)
+    portfolio_variance = cp.quad_form(w, cov)  # type: ignore[attr-defined]
 
     constraints = [
-        cp.sum(w) == 1,  # Fully invested
+        cp.sum(w) == 1,  # type: ignore[attr-defined]  # Fully invested
         w >= min_weight,
         w <= max_weight,
     ]
@@ -1356,7 +1371,7 @@ def solve_portfolio_qp(
     prob = cp.Problem(objective, constraints)
 
     try:
-        prob.solve()
+        prob.solve()  # type: ignore[no-untyped-call]
         elapsed = time.time() - start
 
         if prob.status not in [cp.OPTIMAL, cp.OPTIMAL_INACCURATE]:
@@ -1370,7 +1385,7 @@ def solve_portfolio_qp(
                 solve_time=elapsed,
             )
 
-        weights = {assets[i]: round(float(w.value[i]), 6) for i in range(n)}
+        weights = {assets[i]: round(float(w.value[i]), 6) for i in range(n)}  # type: ignore[index]
         exp_ret = float(ret @ w.value)
         var = float(w.value @ cov @ w.value)
         std = var**0.5

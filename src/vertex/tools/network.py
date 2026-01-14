@@ -1,5 +1,7 @@
 """Network optimization tools."""
 
+from typing import Any
+
 from vertex.models.network import (
     MaxFlowResult,
     MinCostFlowResult,
@@ -18,7 +20,7 @@ from vertex.solvers.network import (
 
 def compute_max_flow(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     source: str,
     sink: str,
 ) -> MaxFlowResult:
@@ -40,7 +42,7 @@ def compute_max_flow(
 
 def compute_min_cost_flow(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     supplies: dict[str, int],
 ) -> MinCostFlowResult:
     """
@@ -61,7 +63,7 @@ def compute_min_cost_flow(
 
 def compute_shortest_path(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     source: str,
     target: str,
 ) -> ShortestPathResult:
@@ -83,7 +85,7 @@ def compute_shortest_path(
 
 def compute_mst(
     nodes: list[str],
-    edges: list[dict],
+    edges: list[dict[str, Any]],
 ) -> MSTResult:
     """
     Find Minimum Spanning Tree connecting all nodes with minimum total weight.
@@ -101,8 +103,8 @@ def compute_mst(
 
 def compute_multi_commodity_flow(
     nodes: list[str],
-    arcs: list[dict],
-    commodities: list[dict],
+    arcs: list[dict[str, Any]],
+    commodities: list[dict[str, Any]],
     time_limit_seconds: int = 30,
 ) -> MultiCommodityFlowResult:
     """

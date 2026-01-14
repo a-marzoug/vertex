@@ -1,11 +1,18 @@
 """Network optimization solvers using Google OR-Tools."""
 
 import time
+from typing import Any
 
 from ortools.graph.python import max_flow, min_cost_flow
 
 from vertex.config import SolverStatus
-from vertex.models.network import MaxFlowResult, MinCostFlowResult, ShortestPathResult
+from vertex.models.network import (
+    MaxFlowResult,
+    MinCostFlowResult,
+    MSTResult,
+    MultiCommodityFlowResult,
+    ShortestPathResult,
+)
 
 
 def _build_node_index(nodes: list[str]) -> dict[str, int]:
@@ -15,7 +22,7 @@ def _build_node_index(nodes: list[str]) -> dict[str, int]:
 
 def solve_max_flow(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     source: str,
     sink: str,
 ) -> MaxFlowResult:
@@ -72,7 +79,7 @@ def solve_max_flow(
 
 def solve_min_cost_flow(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     supplies: dict[str, int],
 ) -> MinCostFlowResult:
     """
@@ -130,7 +137,7 @@ def solve_min_cost_flow(
 
 def solve_shortest_path(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     source: str,
     target: str,
 ) -> ShortestPathResult:
@@ -201,8 +208,8 @@ def solve_shortest_path(
 
 def solve_mst(
     nodes: list[str],
-    edges: list[dict],
-) -> "MSTResult":
+    edges: list[dict[str, Any]],
+) -> MSTResult:
     """
     Find Minimum Spanning Tree using Kruskal's algorithm.
 
@@ -213,7 +220,7 @@ def solve_mst(
     Returns:
         MSTResult with total_weight and edges.
     """
-    from vertex.models.network import MSTEdge, MSTResult
+    from vertex.models.network import MSTEdge
 
     start_time = time.time()
 
@@ -221,12 +228,12 @@ def solve_mst(
     parent = {n: n for n in nodes}
     rank = {n: 0 for n in nodes}
 
-    def find(x):
+    def find(x: str) -> str:
         if parent[x] != x:
             parent[x] = find(parent[x])
         return parent[x]
 
-    def union(x, y):
+    def union(x: str, y: str) -> bool:
         px, py = find(x), find(y)
         if px == py:
             return False
@@ -271,10 +278,10 @@ def solve_mst(
 
 def solve_multi_commodity_flow(
     nodes: list[str],
-    arcs: list[dict],
-    commodities: list[dict],
+    arcs: list[dict[str, Any]],
+    commodities: list[dict[str, Any]],
     time_limit_seconds: int = 30,
-) -> "MultiCommodityFlowResult":
+) -> MultiCommodityFlowResult:
     """
     Solve Multi-Commodity Flow Problem using LP.
 

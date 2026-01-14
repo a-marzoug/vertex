@@ -81,7 +81,7 @@ def optimize_supply_chain(
         return SupplyChainResult(status=SolverStatus.INFEASIBLE)
 
     open_fac = [f for f in facilities if y[f].solution_value() > 0.5]
-    flows = {}
+    flows: dict[str, dict[str, float]] = {}
     for f in facilities:
         flows[f] = {}
         for c in customers:

@@ -1,5 +1,7 @@
 """Sensitivity analysis tools for LP solutions."""
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from vertex.config import ConstraintSense, ObjectiveSense, SolverStatus
@@ -44,8 +46,8 @@ class SensitivityReport(BaseModel):
 
 
 def analyze_sensitivity(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
 ) -> SensitivityReport:

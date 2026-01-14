@@ -1,5 +1,7 @@
 """MCP tools for stochastic and dynamic optimization."""
 
+from typing import Any
+
 from vertex.models.stochastic import (
     BinPacking2DResult,
     ChanceConstrainedResult,
@@ -27,7 +29,7 @@ from vertex.solvers.stochastic import (
 
 def compute_two_stage_stochastic(
     products: list[str],
-    scenarios: list[dict],
+    scenarios: list[dict[str, Any]],
     production_costs: dict[str, float],
     shortage_costs: dict[str, float],
     holding_costs: dict[str, float],
@@ -353,7 +355,7 @@ def solve_chance_constrained_production(
 
 
 def pack_rectangles_2d(
-    rectangles: list[dict],
+    rectangles: list[dict[str, Any]],
     bin_width: int,
     bin_height: int,
     max_bins: int | None = None,
@@ -383,8 +385,8 @@ def pack_rectangles_2d(
 
 def design_network(
     nodes: list[str],
-    potential_arcs: list[dict],
-    commodities: list[dict],
+    potential_arcs: list[dict[str, Any]],
+    commodities: list[dict[str, Any]],
     arc_fixed_costs: dict[str, float],
     arc_capacities: dict[str, float],
     arc_variable_costs: dict[str, float],
@@ -448,7 +450,7 @@ def solve_quadratic_assignment(
 
 def find_steiner_tree(
     nodes: list[str],
-    edges: list[dict],
+    edges: list[dict[str, Any]],
     terminals: list[str],
     time_limit_seconds: int = 30,
 ) -> "SteinerTreeResult":

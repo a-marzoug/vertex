@@ -1,5 +1,7 @@
 """Analysis tools for optimization problems."""
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from vertex.config import ConstraintSense, ObjectiveSense, SolverStatus
@@ -12,7 +14,7 @@ class WhatIfResult(BaseModel):
 
     parameter_name: str
     original_value: float
-    results: list[dict] = Field(
+    results: list[dict[str, Any]] = Field(
         default_factory=list, description="List of {value, objective, feasible}"
     )
 
@@ -27,8 +29,8 @@ class InfeasibilityResult(BaseModel):
 
 
 def analyze_what_if(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     parameter_name: str,
     parameter_values: list[float],
@@ -97,8 +99,8 @@ def analyze_what_if(
 
 
 def diagnose_infeasibility(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
 ) -> InfeasibilityResult:
@@ -184,10 +186,10 @@ def diagnose_infeasibility(
 
 
 def solve_rcpsp(
-    tasks: list[dict],
+    tasks: list[dict[str, Any]],
     resources: dict[str, int],
     time_limit_seconds: int = 30,
-) -> dict:
+) -> dict[str, Any]:
     """
     Solve Resource-Constrained Project Scheduling Problem.
 
@@ -248,7 +250,7 @@ def solve_rcpsp(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return {"status": "infeasible", "solve_time_ms": elapsed}
 
     schedule = [
@@ -261,7 +263,7 @@ def solve_rcpsp(
     ]
 
     return {
-        "status": "optimal" if status == cp_model.OPTIMAL else "feasible",
+        "status": "optimal" if status == cp_model.OPTIMAL else "feasible",  # type: ignore[comparison-overlap]
         "makespan": solver.value(makespan),
         "schedule": sorted(schedule, key=lambda x: x["start"]),
         "solve_time_ms": elapsed,
@@ -280,8 +282,8 @@ class ModelStats(BaseModel):
 
 
 def get_model_stats(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
 ) -> ModelStats:
     """
     Get statistics about an optimization model.
@@ -304,13 +306,13 @@ def get_model_stats(
     density = nonzeros / max_nonzeros if max_nonzeros > 0 else 0
 
     # Variable types
-    var_types = {}
+    var_types: dict[str, int] = {}
     for v in variables:
         vtype = v.get("var_type", "continuous")
         var_types[vtype] = var_types.get(vtype, 0) + 1
 
     # Constraint types
-    constr_types = {}
+    constr_types: dict[str, int] = {}
     for c in constraints:
         sense = c.get("sense", "<=")
         constr_types[sense] = constr_types.get(sense, 0) + 1
@@ -326,8 +328,8 @@ def get_model_stats(
 
 
 def find_alternative_solutions(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
     max_solutions: int = 5,
@@ -349,7 +351,7 @@ def find_alternative_solutions(
     """
     from ortools.linear_solver import pywraplp
 
-    solutions = []
+    solutions: list[dict[str, Any]] = []
 
     # First solve to get optimal
     solver = pywraplp.Solver.CreateSolver("SCIP")

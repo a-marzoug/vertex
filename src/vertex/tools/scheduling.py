@@ -1,5 +1,7 @@
 """Scheduling and Routing MCP tools."""
 
+from typing import Any
+
 from vertex.models.scheduling import (
     BinPackingResult,
     CuttingStockResult,
@@ -225,7 +227,7 @@ def compute_cutting_stock(
 def compute_flexible_job_shop(
     jobs: list[list[dict]],
     time_limit_seconds: int = 30,
-) -> dict:
+) -> dict[str, Any]:
     """
     Solve Flexible Job Shop - tasks can run on alternative machines.
 

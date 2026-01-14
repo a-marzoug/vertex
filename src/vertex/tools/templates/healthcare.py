@@ -81,7 +81,7 @@ def optimize_resource_allocation(
     if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
         return ResourceAllocationResult(status=SolverStatus.INFEASIBLE)
 
-    allocations = {}
+    allocations: dict[str, dict[str, float]] = {}
     unmet = {}
     for r in resources:
         allocations[r] = {}

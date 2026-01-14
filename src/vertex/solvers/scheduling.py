@@ -1,5 +1,7 @@
 """Scheduling and Routing solvers using OR-Tools."""
 
+from typing import Any
+
 import time
 
 from ortools.constraint_solver import pywrapcp, routing_enums_pb2
@@ -295,7 +297,7 @@ def solve_job_shop(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return JobShopResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     schedule = []
@@ -319,7 +321,7 @@ def solve_job_shop(
 
     return JobShopResult(
         status=SolverStatus.OPTIMAL
-        if status == cp_model.OPTIMAL
+        if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
         makespan=solver.value(makespan),
         schedule=sorted(schedule, key=lambda t: (t.job, t.task)),
@@ -369,7 +371,7 @@ def solve_bin_packing(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return BinPackingResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     assignments = []
@@ -383,7 +385,7 @@ def solve_bin_packing(
 
     return BinPackingResult(
         status=SolverStatus.OPTIMAL
-        if status == cp_model.OPTIMAL
+        if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
         num_bins_used=len(assignments),
         assignments=assignments,
@@ -423,7 +425,7 @@ def solve_set_cover(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return SetCoverResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     selected = [s for s in set_names if solver.value(x[s])]
@@ -431,7 +433,7 @@ def solve_set_cover(
 
     return SetCoverResult(
         status=SolverStatus.OPTIMAL
-        if status == cp_model.OPTIMAL
+        if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
         selected_sets=selected,
         total_cost=total_cost,
@@ -471,7 +473,7 @@ def solve_graph_coloring(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return GraphColoringResult(
             status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed
         )
@@ -481,7 +483,7 @@ def solve_graph_coloring(
 
     return GraphColoringResult(
         status=SolverStatus.OPTIMAL
-        if status == cp_model.OPTIMAL
+        if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
         num_colors=num_colors,
         coloring=coloring,
@@ -535,7 +537,7 @@ def solve_cutting_stock(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return CuttingStockResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     patterns = []
@@ -554,7 +556,7 @@ def solve_cutting_stock(
 
     return CuttingStockResult(
         status=SolverStatus.OPTIMAL
-        if status == cp_model.OPTIMAL
+        if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
         num_stock_used=len(patterns),
         patterns=patterns,
@@ -566,7 +568,7 @@ def solve_cutting_stock(
 def solve_flexible_job_shop(
     jobs: list[list[dict]],
     time_limit_seconds: int = 30,
-) -> dict:
+) -> dict[str, Any]:
     """
     Solve Flexible Job Shop - tasks can run on multiple machines.
 
@@ -636,7 +638,7 @@ def solve_flexible_job_shop(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return {"status": "infeasible", "solve_time_ms": elapsed}
 
     schedule = []
@@ -654,7 +656,7 @@ def solve_flexible_job_shop(
                 )
 
     return {
-        "status": "optimal" if status == cp_model.OPTIMAL else "feasible",
+        "status": "optimal" if status == cp_model.OPTIMAL else "feasible",  # type: ignore[comparison-overlap]
         "makespan": solver.value(makespan),
         "schedule": sorted(schedule, key=lambda x: (x["job"], x["task"])),
         "solve_time_ms": elapsed,
@@ -714,7 +716,7 @@ def solve_flow_shop(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return FlowShopResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     # Extract job sequence (order on first machine)
@@ -737,7 +739,7 @@ def solve_flow_shop(
 
     return FlowShopResult(
         status=SolverStatus.OPTIMAL
-        if status == cp_model.OPTIMAL
+        if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
         makespan=solver.value(makespan),
         job_sequence=job_sequence,
@@ -803,7 +805,7 @@ def solve_parallel_machines(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return ParallelMachineResult(
             status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed
         )
@@ -826,7 +828,7 @@ def solve_parallel_machines(
 
     return ParallelMachineResult(
         status=SolverStatus.OPTIMAL
-        if status == cp_model.OPTIMAL
+        if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
         makespan=solver.value(makespan),
         machine_assignments=machine_assignments,

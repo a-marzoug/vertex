@@ -1,5 +1,7 @@
 """Generic Mixed-Integer Programming tool."""
 
+from typing import Any
+
 from vertex.config import ConstraintSense, ObjectiveSense, VariableType
 from vertex.models.mip import (
     MIPConstraint,
@@ -12,8 +14,8 @@ from vertex.solvers.mip import MIPSolver
 
 
 def solve_mip(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
 ) -> MIPSolution:

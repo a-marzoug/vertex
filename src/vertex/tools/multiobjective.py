@@ -1,5 +1,7 @@
 """Multi-objective optimization tools."""
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 from vertex.config import ConstraintSense, ObjectiveSense, SolverStatus
@@ -23,8 +25,8 @@ class MultiObjectiveResult(BaseModel):
 
 
 def solve_multi_objective(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objectives: dict[str, dict[str, float]],
     num_points: int = 10,
     objective_senses: dict[str, str] | None = None,
@@ -47,7 +49,7 @@ def solve_multi_objective(
         return MultiObjectiveResult(status=SolverStatus.ERROR)
 
     senses = objective_senses or {name: "maximize" for name in obj_names}
-    pareto_points = []
+    pareto_points: list[ParetoPoint] = []
 
     # Generate weights for weighted sum
     for i in range(num_points + 1):

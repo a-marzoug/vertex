@@ -97,7 +97,7 @@ def optimize_workforce_schedule(
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return WorkforceResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     assignments = []
@@ -113,7 +113,7 @@ def optimize_workforce_schedule(
 
     return WorkforceResult(
         status=SolverStatus.OPTIMAL
-        if status == cp_model.OPTIMAL
+        if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
         assignments=sorted(assignments, key=lambda a: (a.day, a.shift, a.worker)),
         total_cost=total_cost,

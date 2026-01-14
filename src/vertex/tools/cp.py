@@ -71,7 +71,7 @@ def solve_sudoku(grid: list[list[int]]) -> SudokuResult:
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status != cp_model.OPTIMAL and status != cp_model.FEASIBLE:
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return SudokuResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     result_grid = [[solver.value(cells[(i, j)]) for j in range(9)] for i in range(9)]
@@ -112,7 +112,7 @@ def solve_n_queens(n: int) -> NQueensResult:
     status = solver.solve(model)
     elapsed = (time.time() - start_time) * 1000
 
-    if status != cp_model.OPTIMAL and status != cp_model.FEASIBLE:
+    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):  # type: ignore[comparison-overlap]
         return NQueensResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
 
     return NQueensResult(

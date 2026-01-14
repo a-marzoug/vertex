@@ -70,12 +70,14 @@ def optimize_assignment(
 
     solution = MIPSolver().solve(problem)
 
-    assignments = []
+    assignments: list[dict[str, str | float]] = []
     if solution.variable_values:
         for w in workers:
             for t in tasks:
                 if solution.variable_values.get(f"{w}_{t}", 0) > 0.5:
-                    assignments.append({"worker": w, "task": t, "cost": costs[w][t]})
+                    assignments.append(
+                        {"worker": w, "task": t, "cost": float(costs[w][t])}
+                    )
 
     return AssignmentResult(
         status=solution.status,

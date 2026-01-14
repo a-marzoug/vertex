@@ -1,5 +1,7 @@
 """Vertex MCP Server - Operations Research tools for decision makers."""
 
+from typing import Any
+
 from mcp.server.fastmcp import FastMCP
 
 from vertex.config import DEFAULT_HOST, DEFAULT_PORT, SERVER_DESCRIPTION, SERVER_NAME
@@ -100,7 +102,7 @@ from vertex.tools.templates.assignment import (
     AssignmentResult,
     optimize_assignment as _optimize_assignment,
 )
-from vertex.tools.templates.diet import DietResult
+from vertex.tools.templates.diet import DietResult, optimize_diet_plan
 from vertex.tools.templates.facility import (
     FacilityResult,
     optimize_facility_location as _optimize_facility,
@@ -135,8 +137,8 @@ mcp = FastMCP(
 # LP Tools
 @mcp.tool()
 def solve_linear_program(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
 ) -> LPSolution:
@@ -146,8 +148,8 @@ def solve_linear_program(
 
 @mcp.tool()
 def analyze_lp_sensitivity(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
 ) -> SensitivityReport:
@@ -164,8 +166,8 @@ def analyze_lp_sensitivity(
 
 @mcp.tool()
 def analyze_what_if_scenario(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     parameter_name: str,
     parameter_values: list[float],
@@ -194,8 +196,8 @@ def analyze_what_if_scenario(
 
 @mcp.tool()
 def diagnose_infeasibility(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
 ) -> InfeasibilityResult:
@@ -215,8 +217,8 @@ def diagnose_infeasibility(
 
 @mcp.tool()
 def get_model_statistics(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
 ) -> ModelStats:
     """
     Get statistics about an optimization model.
@@ -233,8 +235,8 @@ def get_model_statistics(
 
 @mcp.tool()
 def solve_pareto_frontier(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objectives: dict[str, dict[str, float]],
     num_points: int = 10,
     objective_senses: dict[str, str] | None = None,
@@ -278,8 +280,8 @@ def solve_n_queens_puzzle(n: int) -> NQueensResult:
 
 @mcp.tool()
 def find_alternative_optimal_solutions(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
     max_solutions: int = 5,
@@ -328,7 +330,7 @@ def optimize_diet_plan(
     max_limits: dict[str, float] | None = None,
 ) -> DietResult:
     """Find minimum cost diet meeting nutritional requirements."""
-    return optimize_diet(
+    return optimize_diet_plan(
         foods, nutrients, costs, nutrition_values, min_requirements, max_limits
     )
 
@@ -350,8 +352,8 @@ def optimize_investment_portfolio(
 # MIP Tools
 @mcp.tool()
 def solve_mixed_integer_program(
-    variables: list[dict],
-    constraints: list[dict],
+    variables: list[dict[str, Any]],
+    constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
 ) -> MIPSolution:
@@ -513,7 +515,7 @@ def optimize_supply_chain_network(
 @mcp.tool()
 def find_max_flow(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     source: str,
     sink: str,
 ) -> MaxFlowResult:
@@ -533,7 +535,7 @@ def find_max_flow(
 @mcp.tool()
 def find_min_cost_flow(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     supplies: dict[str, int],
 ) -> MinCostFlowResult:
     """
@@ -551,7 +553,7 @@ def find_min_cost_flow(
 @mcp.tool()
 def find_shortest_path(
     nodes: list[str],
-    arcs: list[dict],
+    arcs: list[dict[str, Any]],
     source: str,
     target: str,
 ) -> ShortestPathResult:
@@ -570,7 +572,7 @@ def find_shortest_path(
 @mcp.tool()
 def find_minimum_spanning_tree(
     nodes: list[str],
-    edges: list[dict],
+    edges: list[dict[str, Any]],
 ) -> MSTResult:
     """
     Find Minimum Spanning Tree connecting all nodes with minimum total weight.
@@ -585,8 +587,8 @@ def find_minimum_spanning_tree(
 @mcp.tool()
 def find_multi_commodity_flow(
     nodes: list[str],
-    arcs: list[dict],
-    commodities: list[dict],
+    arcs: list[dict[str, Any]],
+    commodities: list[dict[str, Any]],
     time_limit_seconds: int = 30,
 ) -> MultiCommodityFlowResult:
     """
@@ -702,10 +704,10 @@ def solve_job_shop(
 
 @mcp.tool()
 def solve_rcpsp(
-    tasks: list[dict],
+    tasks: list[dict[str, Any]],
     resources: dict[str, int],
     time_limit_seconds: int = 30,
-) -> dict:
+) -> dict[str, Any]:
     """
     Solve Resource-Constrained Project Scheduling Problem.
 
@@ -723,7 +725,7 @@ def solve_rcpsp(
 def solve_flexible_job_shop(
     jobs: list[list[dict]],
     time_limit_seconds: int = 30,
-) -> dict:
+) -> dict[str, Any]:
     """
     Solve Flexible Job Shop - tasks can run on alternative machines.
 
@@ -864,7 +866,7 @@ def solve_cutting_stock(
 @mcp.tool()
 def solve_two_stage_stochastic(
     products: list[str],
-    scenarios: list[dict],
+    scenarios: list[dict[str, Any]],
     production_costs: dict[str, float],
     shortage_costs: dict[str, float],
     holding_costs: dict[str, float],
@@ -1194,7 +1196,7 @@ def solve_chance_constrained(
 
 @mcp.tool()
 def solve_2d_bin_packing(
-    rectangles: list[dict],
+    rectangles: list[dict[str, Any]],
     bin_width: int,
     bin_height: int,
     max_bins: int | None = None,
@@ -1220,8 +1222,8 @@ def solve_2d_bin_packing(
 @mcp.tool()
 def solve_network_design(
     nodes: list[str],
-    potential_arcs: list[dict],
-    commodities: list[dict],
+    potential_arcs: list[dict[str, Any]],
+    commodities: list[dict[str, Any]],
     arc_fixed_costs: dict[str, float],
     arc_capacities: dict[str, float],
     arc_variable_costs: dict[str, float],
@@ -1278,7 +1280,7 @@ def solve_quadratic_assignment_problem(
 @mcp.tool()
 def solve_steiner_tree(
     nodes: list[str],
-    edges: list[dict],
+    edges: list[dict[str, Any]],
     terminals: list[str],
     time_limit_seconds: int = 30,
 ) -> SteinerTreeResult:
@@ -1419,8 +1421,9 @@ def interpret_lp_solution(
 def main() -> None:
     """Run the Vertex MCP server."""
     import sys
+    from typing import Literal
 
-    transport = "stdio"
+    transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
     if "--http" in sys.argv:
         transport = "streamable-http"
 

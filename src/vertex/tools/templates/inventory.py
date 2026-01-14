@@ -96,7 +96,7 @@ def optimize_multi_item_inventory(
     """
     order_quantities = {}
     item_costs = {}
-    total_cost = 0
+    total_cost = 0.0
 
     for item in items:
         d = annual_demands[item]
