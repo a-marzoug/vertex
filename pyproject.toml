@@ -4,14 +4,51 @@ version = "0.1.0"
 description = "Operations Research MCP Server for decision makers"
 readme = "README.md"
 requires-python = ">=3.13"
+license = { text = "MIT" }
+authors = [{ name = "Vertex Contributors" }]
+maintainers = [{ name = "Vertex Contributors" }]
+keywords = [
+    "operations-research",
+    "optimization",
+    "linear-programming",
+    "mcp",
+    "mcp-server",
+    "decision-support",
+    "ortools",
+    "scheduling",
+    "routing",
+    "network-flow",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
 dependencies = [
     "cvxpy>=1.7.5",
     "mcp[cli]>=1.25.0",
     "numpy>=2.4.1",
     "ortools>=9.14.6206",
+    "prometheus-client>=0.24.1",
     "pydantic>=2.12.5",
     "scipy>=1.17.0",
+    "structlog>=25.5.0",
+    "sympy>=1.14.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/a-marzoug/vertex"
+Documentation = "https://github.com/a-marzoug/vertex/tree/main/docs"
+Repository = "https://github.com/a-marzoug/vertex"
+Issues = "https://github.com/a-marzoug/vertex/issues"
+Changelog = "https://github.com/a-marzoug/vertex/blob/main/CHANGELOG.md"
 
 [project.scripts]
 vertex = "vertex.server:main"
@@ -25,11 +62,15 @@ packages = ["src/vertex"]
 
 [dependency-groups]
 dev = [
+    "bandit>=1.9.3",
     "mypy>=1.19.1",
+    "pip-audit>=2.10.0",
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
+    "pytest-timeout>=2.4.0",
     "ruff>=0.14.11",
+    "twine>=6.2.0",
 ]
 
 [tool.ruff]
@@ -47,6 +88,7 @@ select = [
     "B",  # flake8-bugbear
     "N",  # pep8-naming
 ]
+ignore = ["E501"]
 fixable = ["ALL"]
 
 [tool.ruff.lint.isort]
