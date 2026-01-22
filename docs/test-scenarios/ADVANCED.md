@@ -340,3 +340,175 @@ Returns: [0.12, 0.10, 0.11, 0.14]
 Target Return: None (Global Min Variance)."
 
 *(Expected Tool: `optimize_portfolio_qp`)*
+
+
+---
+
+## Nonlinear Programming (NLP)
+
+### Scenario 20: Rosenbrock Function Optimization
+
+**Prompt:**
+"Minimize the Rosenbrock function: (1-x)^2 + 100*(y-x^2)^2
+Starting from x=0, y=0.
+What are the optimal values of x and y?"
+
+*(Expected Tool: `solve_nonlinear_program`)*
+
+---
+
+### Scenario 21: Constrained Circle Packing
+
+**Prompt:**
+"Minimize x^2 + y^2 subject to the constraint x + y >= 5.
+What are the optimal values?"
+
+*(Expected Tool: `solve_nonlinear_program`)*
+
+---
+
+## Mixed-Integer Nonlinear Programming (MINLP)
+
+### Scenario 22: Facility Location with Nonlinear Costs
+
+**Prompt:**
+"Optimize facility placement with nonlinear transportation costs.
+
+Variables:
+- x: integer, 0 to 10 (number of facilities at location A)
+- y: continuous, 0 to 10 (capacity at location B)
+
+Objective: Minimize x^2 + y^2 (represents setup and operational costs)
+
+Constraint: x + y >= 5 (must meet minimum service level)
+
+Find the optimal solution."
+
+*(Expected Tool: `solve_minlp`)*
+
+---
+
+### Scenario 23: Process Engineering Design
+
+**Prompt:**
+"Design a chemical process with discrete equipment choices and continuous flow rates.
+
+Variables:
+- n_reactors: integer, 1 to 5 (number of reactors)
+- flow_rate: continuous, 10 to 100 (kg/hr)
+
+Objective: Minimize n_reactors^2 + 0.01*flow_rate^2 (capital + operating cost)
+
+Constraints:
+- n_reactors * flow_rate >= 150 (production requirement)
+- flow_rate <= 80 (safety limit)
+
+What's the optimal design?"
+
+*(Expected Tool: `solve_minlp`)*
+
+---
+
+## Simulation-Based Optimization
+
+### Scenario 24: Optimize Newsvendor Order Quantity
+
+**Prompt:**
+"Find the optimal order quantity for a newsvendor problem using simulation.
+
+Fixed parameters:
+- Demand: Normal distribution (mean=100, std=20)
+- Unit cost: $10
+- Unit price: $15
+- Holding cost: $0
+
+Optimize: order_quantity (between 50 and 150)
+
+Use 500 simulations per evaluation to find the order quantity that maximizes expected profit."
+
+*(Expected Tool: `optimize_simulation_parameters`)*
+
+---
+
+### Scenario 25: Multi-Product Production Optimization
+
+**Prompt:**
+"Optimize production quantities for products A and B under demand uncertainty.
+
+Fixed parameters:
+- Products: [A, B]
+- Demand means: A=100, B=80
+- Demand std devs: A=20, B=15
+- Selling prices: A=$25, B=$30
+- Production costs: A=$10, B=$12
+- Shortage costs: A=$5, B=$8
+
+Optimize:
+- production_quantity_A (between 50 and 150)
+- production_quantity_B (between 40 and 120)
+
+Use simulation to find the production plan that maximizes expected profit."
+
+*(Expected Tool: `optimize_simulation_parameters`)*
+
+
+---
+
+## Solver Selection (Self-Tuning)
+
+### Scenario 26: Select Solver for Large MIP
+
+**Prompt:**
+"I have an optimization problem with:
+- 15,000 decision variables
+- 8,000 constraints
+- Variables are integers (0 to 100)
+- Linear objective and constraints
+
+Which solver should I use and what configuration is recommended?"
+
+*(Expected Tool: `select_solver`)*
+
+---
+
+### Scenario 27: Select Solver for Nonlinear Problem
+
+**Prompt:**
+"Help me choose the right solver for:
+- 20 variables (10 continuous, 10 integer)
+- 15 nonlinear constraints
+- Nonlinear objective function
+
+What tool should I use?"
+
+*(Expected Tool: `select_solver`)*
+
+---
+
+### Scenario 28: Select Solver for Network Flow
+
+**Prompt:**
+"I need to solve a network optimization problem:
+- 200 nodes
+- 500 edges
+- Flow conservation constraints
+- No integer variables
+
+Which solver is best for this?"
+
+*(Expected Tool: `select_solver`)*
+
+---
+
+### Scenario 29: Select Solver for Scheduling
+
+**Prompt:**
+"I have a scheduling problem:
+- 500 tasks
+- 300 precedence constraints
+- Resource capacity limits
+- Minimize makespan
+
+What's the recommended approach?"
+
+*(Expected Tool: `select_solver`)*
