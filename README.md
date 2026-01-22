@@ -216,6 +216,8 @@ agent = Agent(
 | `solve_tsp` | Traveling Salesman Problem - shortest tour |
 | `solve_vrp` | Vehicle Routing Problem with capacity constraints |
 | `solve_vrp_time_windows` | VRP with time window constraints |
+| `solve_pickup_delivery` | VRP with pickup and delivery constraints |
+| `solve_multi_depot_vrp` | VRP with multiple depots |
 | `solve_job_shop` | Job Shop Scheduling - minimize makespan |
 | `solve_rcpsp` | Resource-Constrained Project Scheduling |
 | `solve_flexible_job_shop` | Flexible Job Shop - tasks on alternative machines |
@@ -233,6 +235,7 @@ agent = Agent(
 | `solve_parallel_machines` | Parallel machine scheduling |
 | `simulate_newsvendor` | Monte Carlo simulation for newsvendor |
 | `simulate_production` | Monte Carlo simulation for production |
+| `optimize_simulation_parameters` | Optimize parameters using simulation-based black-box optimization |
 | `solve_crew_schedule` | Crew/shift scheduling with constraints |
 | `solve_chance_constrained` | Chance-constrained production planning |
 | `solve_2d_bin_packing` | 2D rectangle bin packing |
@@ -242,14 +245,33 @@ agent = Agent(
 | `optimize_multi_echelon` | Multi-echelon inventory optimization |
 | `solve_qp` | Quadratic Programming (convex) |
 | `optimize_portfolio_variance` | Markowitz mean-variance portfolio |
+| `optimize_equipment_replacement` | Optimize replacement policy using MDP |
+| `solve_discrete_mdp` | Solve generic discrete Markov Decision Processes |
+| `solve_nonlinear_program` | Solve NLP using SciPy |
+| `solve_minlp` | Solve Mixed-Integer Nonlinear Programming |
+| `select_solver` | Automatically recommend best solver for problem characteristics |
+| `get_system_metrics` | Get server performance metrics (Prometheus format) |
 
 ## Prompts
 
 | Prompt | Description |
 |--------|-------------|
+| `select_optimization_approach` | Help select the right tool/algorithm for a problem |
 | `formulate_lp_problem` | Guide for extracting LP components from natural language |
 | `formulate_mip_problem` | Guide for formulating mixed-integer problems |
+| `formulate_network_problem` | Guide for formulating network flow problems |
+| `formulate_scheduling_problem` | Guide for formulating scheduling problems |
 | `interpret_lp_solution` | Explain optimization results to decision makers |
+| `interpret_sensitivity_analysis` | Explain shadow prices and reduced costs |
+
+## Configuration
+
+The server can be configured via environment variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VERTEX_LOG_LEVEL` | Logging verbosity (DEBUG, INFO, WARNING, ERROR) | `INFO` |
+| `VERTEX_JSON_LOGS` | Output logs in JSON format (true/false) | `true` |
 
 ## Example
 
