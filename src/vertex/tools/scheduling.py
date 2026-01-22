@@ -9,9 +9,8 @@ from vertex.models.scheduling import (
     GraphColoringResult,
     JobShopResult,
     ParallelMachineResult,
+    RCPSPResult,
     SetCoverResult,
-    TSPResult,
-    VRPResult,
 )
 from vertex.solvers.scheduling import (
     solve_bin_packing,
@@ -21,99 +20,12 @@ from vertex.solvers.scheduling import (
     solve_job_shop,
     solve_parallel_machines,
     solve_set_cover,
-    solve_tsp,
-    solve_vrp,
-    solve_vrp_time_windows,
 )
+from vertex.utils.async_utils import run_in_executor
+from vertex.utils.visualization import create_gantt_chart
 
 
-def compute_tsp(
-    locations: list[str],
-    distance_matrix: list[list[float]],
-    time_limit_seconds: int = 30,
-) -> TSPResult:
-    """
-    Solve Traveling Salesman Problem - find shortest tour visiting all locations.
-
-    Args:
-        locations: Location names. First is start/end point.
-        distance_matrix: distances[i][j] = distance from location i to j.
-        time_limit_seconds: Solver time limit.
-
-    Returns:
-        Optimal tour and total distance.
-    """
-    return solve_tsp(locations, distance_matrix, time_limit_seconds)
-
-
-def compute_vrp(
-    locations: list[str],
-    distance_matrix: list[list[float]],
-    demands: list[int],
-    vehicle_capacities: list[int],
-    depot: int = 0,
-    time_limit_seconds: int = 30,
-) -> VRPResult:
-    """
-    Solve Capacitated Vehicle Routing Problem.
-
-    Args:
-        locations: Location names. Index 0 is typically the depot.
-        distance_matrix: distances[i][j] = distance from location i to j.
-        demands: Demand at each location (depot demand should be 0).
-        vehicle_capacities: Capacity of each vehicle.
-        depot: Index of depot location.
-        time_limit_seconds: Solver time limit.
-
-    Returns:
-        Routes for each vehicle with stops and distances.
-    """
-    return solve_vrp(
-        locations,
-        distance_matrix,
-        demands,
-        vehicle_capacities,
-        depot,
-        time_limit_seconds,
-    )
-
-
-def compute_vrp_tw(
-    locations: list[str],
-    time_matrix: list[list[int]],
-    time_windows: list[tuple[int, int]],
-    demands: list[int],
-    vehicle_capacities: list[int],
-    depot: int = 0,
-    time_limit_seconds: int = 30,
-) -> VRPResult:
-    """
-    Solve VRP with Time Windows - vehicles must arrive within time windows.
-
-    Args:
-        locations: Location names.
-        time_matrix: time_matrix[i][j] = travel time from i to j.
-        time_windows: (earliest, latest) arrival time for each location.
-        demands: Demand at each location.
-        vehicle_capacities: Capacity of each vehicle.
-        depot: Index of depot location.
-        time_limit_seconds: Solver time limit.
-
-    Returns:
-        Routes with arrival times at each stop.
-    """
-    return solve_vrp_time_windows(
-        locations,
-        time_matrix,
-        time_windows,
-        demands,
-        vehicle_capacities,
-        depot,
-        time_limit_seconds,
-    )
-
-
-def compute_job_shop(
+async def compute_job_shop(
     jobs: list[list[dict]],
     time_limit_seconds: int = 30,
 ) -> JobShopResult:
@@ -129,10 +41,10 @@ def compute_job_shop(
         Schedule with start times for each task and total makespan.
     """
     jobs_tuples = [[(t["machine"], t["duration"]) for t in job] for job in jobs]
-    return solve_job_shop(jobs_tuples, time_limit_seconds)
+    return await run_in_executor(solve_job_shop, jobs_tuples, time_limit_seconds)
 
 
-def compute_bin_packing(
+async def compute_bin_packing(
     items: list[str],
     weights: dict[str, float],
     bin_capacity: float,
@@ -152,10 +64,12 @@ def compute_bin_packing(
     Returns:
         Bin assignments and number of bins used.
     """
-    return solve_bin_packing(items, weights, bin_capacity, max_bins, time_limit_seconds)
+    return await run_in_executor(
+        solve_bin_packing, items, weights, bin_capacity, max_bins, time_limit_seconds
+    )
 
 
-def compute_set_cover(
+async def compute_set_cover(
     universe: list[str],
     sets: dict[str, list[str]],
     costs: dict[str, float],
@@ -173,10 +87,12 @@ def compute_set_cover(
     Returns:
         Selected sets and total cost.
     """
-    return solve_set_cover(universe, sets, costs, time_limit_seconds)
+    return await run_in_executor(
+        solve_set_cover, universe, sets, costs, time_limit_seconds
+    )
 
 
-def compute_graph_coloring(
+async def compute_graph_coloring(
     nodes: list[str],
     edges: list[tuple[str, str]],
     max_colors: int | None = None,
@@ -194,10 +110,12 @@ def compute_graph_coloring(
     Returns:
         Color assignment minimizing number of colors used.
     """
-    return solve_graph_coloring(nodes, edges, max_colors, time_limit_seconds)
+    return await run_in_executor(
+        solve_graph_coloring, nodes, edges, max_colors, time_limit_seconds
+    )
 
 
-def compute_cutting_stock(
+async def compute_cutting_stock(
     items: list[str],
     lengths: dict[str, int],
     demands: dict[str, int],
@@ -219,12 +137,18 @@ def compute_cutting_stock(
     Returns:
         Cutting patterns and total waste.
     """
-    return solve_cutting_stock(
-        items, lengths, demands, stock_length, max_stock, time_limit_seconds
+    return await run_in_executor(
+        solve_cutting_stock,
+        items,
+        lengths,
+        demands,
+        stock_length,
+        max_stock,
+        time_limit_seconds,
     )
 
 
-def compute_flexible_job_shop(
+async def compute_flexible_job_shop(
     jobs: list[list[dict]],
     time_limit_seconds: int = 30,
 ) -> dict[str, Any]:
@@ -241,10 +165,10 @@ def compute_flexible_job_shop(
     """
     from vertex.solvers.scheduling import solve_flexible_job_shop
 
-    return solve_flexible_job_shop(jobs, time_limit_seconds)
+    return await run_in_executor(solve_flexible_job_shop, jobs, time_limit_seconds)
 
 
-def compute_flow_shop(
+async def compute_flow_shop(
     processing_times: list[list[int]],
     time_limit_seconds: int = 30,
 ) -> FlowShopResult:
@@ -259,10 +183,10 @@ def compute_flow_shop(
     Returns:
         Optimal job sequence and makespan.
     """
-    return solve_flow_shop(processing_times, time_limit_seconds)
+    return await run_in_executor(solve_flow_shop, processing_times, time_limit_seconds)
 
 
-def compute_parallel_machines(
+async def compute_parallel_machines(
     job_durations: list[int],
     num_machines: int,
     time_limit_seconds: int = 30,
@@ -278,4 +202,114 @@ def compute_parallel_machines(
     Returns:
         Machine assignments and makespan.
     """
-    return solve_parallel_machines(job_durations, num_machines, time_limit_seconds)
+    return await run_in_executor(
+        solve_parallel_machines, job_durations, num_machines, time_limit_seconds
+    )
+
+
+async def solve_rcpsp(
+    tasks: list[dict[str, Any]],
+    resources: dict[str, int],
+    time_limit_seconds: int = 30,
+) -> RCPSPResult:
+    """
+    Solve Resource-Constrained Project Scheduling Problem.
+
+    Args:
+        tasks: List of tasks with 'name', 'duration', 'resources' (dict), 'predecessors' (list).
+        resources: Available capacity per resource type.
+        time_limit_seconds: Solver time limit.
+
+    Returns:
+        RCPSPResult with status, makespan, schedule, and visualization.
+    """
+
+    # Define inner blocking function to run in executor
+    def _solve_blocking() -> RCPSPResult:
+        import time
+
+        from ortools.sat.python import cp_model
+
+        from vertex.config import SolverStatus
+
+        start_time = time.time()
+        model = cp_model.CpModel()
+
+        horizon = sum(t["duration"] for t in tasks)
+
+        # Variables
+        starts = {}
+        ends = {}
+        intervals = {}
+
+        for t in tasks:
+            name = t["name"]
+            starts[name] = model.new_int_var(0, horizon, f"start_{name}")
+            ends[name] = model.new_int_var(0, horizon, f"end_{name}")
+            intervals[name] = model.new_interval_var(
+                starts[name], t["duration"], ends[name], f"interval_{name}"
+            )
+
+        # Precedence constraints
+        for t in tasks:
+            for pred in t.get("predecessors", []):
+                model.add(starts[t["name"]] >= ends[pred])
+
+        # Resource constraints using cumulative
+        for res_name, capacity in resources.items():
+            task_intervals = []
+            demands = []
+            for t in tasks:
+                if t.get("resources", {}).get(res_name, 0) > 0:
+                    task_intervals.append(intervals[t["name"]])
+                    demands.append(t["resources"][res_name])
+            if task_intervals:
+                model.add_cumulative(task_intervals, demands, capacity)
+
+        # Minimize makespan
+        makespan = model.new_int_var(0, horizon, "makespan")
+        model.add_max_equality(makespan, [ends[t["name"]] for t in tasks])
+        model.minimize(makespan)
+
+        solver = cp_model.CpSolver()
+        solver.parameters.max_time_in_seconds = time_limit_seconds
+        status = solver.solve(model)
+        elapsed = (time.time() - start_time) * 1000
+
+        if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            return RCPSPResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
+
+        schedule = [
+            {
+                "task": t["name"],
+                "start": solver.value(starts[t["name"]]),
+                "end": solver.value(ends[t["name"]]),
+                "duration": t["duration"],
+                "resource": "Project",  # Placeholder for visualization lane
+            }
+            for t in tasks
+        ]
+
+        status_enum = (
+            SolverStatus.OPTIMAL
+            if status == cp_model.OPTIMAL
+            else SolverStatus.FEASIBLE
+        )
+
+        result = RCPSPResult(
+            status=status_enum,
+            makespan=solver.value(makespan),
+            schedule=sorted(schedule, key=lambda x: x["start"]),
+            solve_time_ms=elapsed,
+        )
+
+        result.visualization = create_gantt_chart(
+            result.schedule,
+            title="Project Schedule",
+            resource_key="resource",
+            task_key="task",
+        )
+
+        return result
+
+    return await run_in_executor(_solve_blocking)

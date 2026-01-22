@@ -1,249 +1,24 @@
 """Scheduling and Routing solvers using OR-Tools."""
 
+import time
 from typing import Any
 
-import time
-
-from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 from ortools.sat.python import cp_model
 
 from vertex.config import SolverStatus
 from vertex.models.scheduling import (
     BinAssignment,
     BinPackingResult,
+    CuttingPattern,
+    CuttingStockResult,
+    FlowShopResult,
+    GraphColoringResult,
     JobShopResult,
+    ParallelMachineResult,
     ScheduledTask,
     SetCoverResult,
-    TSPResult,
-    VRPResult,
-    VRPRoute,
 )
-
-
-def solve_tsp(
-    locations: list[str],
-    distance_matrix: list[list[float]],
-    time_limit_seconds: int = 30,
-) -> TSPResult:
-    """Solve Traveling Salesman Problem using OR-Tools routing."""
-    start_time = time.time()
-    n = len(locations)
-
-    manager = pywrapcp.RoutingIndexManager(n, 1, 0)
-    routing = pywrapcp.RoutingModel(manager)
-
-    def distance_callback(from_idx, to_idx):
-        from_node = manager.IndexToNode(from_idx)
-        to_node = manager.IndexToNode(to_idx)
-        return int(distance_matrix[from_node][to_node])
-
-    transit_idx = routing.RegisterTransitCallback(distance_callback)
-    routing.SetArcCostEvaluatorOfAllVehicles(transit_idx)
-
-    search_params = pywrapcp.DefaultRoutingSearchParameters()
-    search_params.first_solution_strategy = (
-        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-    )
-    search_params.local_search_metaheuristic = (
-        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-    )
-    search_params.time_limit.seconds = time_limit_seconds
-
-    solution = routing.SolveWithParameters(search_params)
-    elapsed = (time.time() - start_time) * 1000
-
-    if not solution:
-        return TSPResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
-
-    route = []
-    index = routing.Start(0)
-    while not routing.IsEnd(index):
-        route.append(locations[manager.IndexToNode(index)])
-        index = solution.Value(routing.NextVar(index))
-    route.append(locations[manager.IndexToNode(index)])
-
-    return TSPResult(
-        status=SolverStatus.OPTIMAL,
-        route=route,
-        total_distance=solution.ObjectiveValue(),
-        solve_time_ms=elapsed,
-    )
-
-
-def solve_vrp(
-    locations: list[str],
-    distance_matrix: list[list[float]],
-    demands: list[int],
-    vehicle_capacities: list[int],
-    depot: int = 0,
-    time_limit_seconds: int = 30,
-) -> VRPResult:
-    """Solve Capacitated Vehicle Routing Problem."""
-    start_time = time.time()
-    n = len(locations)
-    num_vehicles = len(vehicle_capacities)
-
-    manager = pywrapcp.RoutingIndexManager(n, num_vehicles, depot)
-    routing = pywrapcp.RoutingModel(manager)
-
-    def distance_callback(from_idx, to_idx):
-        from_node = manager.IndexToNode(from_idx)
-        to_node = manager.IndexToNode(to_idx)
-        return int(distance_matrix[from_node][to_node])
-
-    transit_idx = routing.RegisterTransitCallback(distance_callback)
-    routing.SetArcCostEvaluatorOfAllVehicles(transit_idx)
-
-    def demand_callback(idx):
-        return demands[manager.IndexToNode(idx)]
-
-    demand_idx = routing.RegisterUnaryTransitCallback(demand_callback)
-    routing.AddDimensionWithVehicleCapacity(
-        demand_idx, 0, vehicle_capacities, True, "Capacity"
-    )
-
-    search_params = pywrapcp.DefaultRoutingSearchParameters()
-    search_params.first_solution_strategy = (
-        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-    )
-    search_params.local_search_metaheuristic = (
-        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-    )
-    search_params.time_limit.seconds = time_limit_seconds
-
-    solution = routing.SolveWithParameters(search_params)
-    elapsed = (time.time() - start_time) * 1000
-
-    if not solution:
-        return VRPResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
-
-    routes = []
-    total_distance = 0
-    for v in range(num_vehicles):
-        index = routing.Start(v)
-        stops = []
-        route_distance = 0
-        route_load = 0
-        while not routing.IsEnd(index):
-            node = manager.IndexToNode(index)
-            stops.append(locations[node])
-            route_load += demands[node]
-            prev_index = index
-            index = solution.Value(routing.NextVar(index))
-            route_distance += routing.GetArcCostForVehicle(prev_index, index, v)
-        stops.append(locations[manager.IndexToNode(index)])
-        if len(stops) > 2:  # Has actual stops beyond depot
-            routes.append(
-                VRPRoute(
-                    vehicle=v, stops=stops, distance=route_distance, load=route_load
-                )
-            )
-            total_distance += route_distance
-
-    return VRPResult(
-        status=SolverStatus.OPTIMAL,
-        routes=routes,
-        total_distance=total_distance,
-        solve_time_ms=elapsed,
-    )
-
-
-def solve_vrp_time_windows(
-    locations: list[str],
-    time_matrix: list[list[int]],
-    time_windows: list[tuple[int, int]],
-    demands: list[int],
-    vehicle_capacities: list[int],
-    depot: int = 0,
-    time_limit_seconds: int = 30,
-) -> VRPResult:
-    """Solve VRP with Time Windows."""
-    start_time = time.time()
-    n = len(locations)
-    num_vehicles = len(vehicle_capacities)
-
-    manager = pywrapcp.RoutingIndexManager(n, num_vehicles, depot)
-    routing = pywrapcp.RoutingModel(manager)
-
-    def time_callback(from_idx, to_idx):
-        from_node = manager.IndexToNode(from_idx)
-        to_node = manager.IndexToNode(to_idx)
-        return time_matrix[from_node][to_node]
-
-    transit_idx = routing.RegisterTransitCallback(time_callback)
-    routing.SetArcCostEvaluatorOfAllVehicles(transit_idx)
-
-    # Time dimension
-    max_time = max(tw[1] for tw in time_windows) + sum(max(row) for row in time_matrix)
-    routing.AddDimension(transit_idx, max_time, max_time, False, "Time")
-    time_dimension = routing.GetDimensionOrDie("Time")
-
-    for loc_idx in range(n):
-        index = manager.NodeToIndex(loc_idx)
-        time_dimension.CumulVar(index).SetRange(
-            time_windows[loc_idx][0], time_windows[loc_idx][1]
-        )
-
-    # Capacity
-    def demand_callback(idx):
-        return demands[manager.IndexToNode(idx)]
-
-    demand_idx = routing.RegisterUnaryTransitCallback(demand_callback)
-    routing.AddDimensionWithVehicleCapacity(
-        demand_idx, 0, vehicle_capacities, True, "Capacity"
-    )
-
-    search_params = pywrapcp.DefaultRoutingSearchParameters()
-    search_params.first_solution_strategy = (
-        routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-    )
-    search_params.local_search_metaheuristic = (
-        routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
-    )
-    search_params.time_limit.seconds = time_limit_seconds
-
-    solution = routing.SolveWithParameters(search_params)
-    elapsed = (time.time() - start_time) * 1000
-
-    if not solution:
-        return VRPResult(status=SolverStatus.INFEASIBLE, solve_time_ms=elapsed)
-
-    routes = []
-    total_distance = 0
-    for v in range(num_vehicles):
-        index = routing.Start(v)
-        stops = []
-        arrival_times = []
-        route_distance = 0
-        route_load = 0
-        while not routing.IsEnd(index):
-            node = manager.IndexToNode(index)
-            stops.append(locations[node])
-            arrival_times.append(solution.Value(time_dimension.CumulVar(index)))
-            route_load += demands[node]
-            prev_index = index
-            index = solution.Value(routing.NextVar(index))
-            route_distance += routing.GetArcCostForVehicle(prev_index, index, v)
-        stops.append(locations[manager.IndexToNode(index)])
-        arrival_times.append(solution.Value(time_dimension.CumulVar(index)))
-        if len(stops) > 2:
-            routes.append(
-                VRPRoute(
-                    vehicle=v,
-                    stops=stops,
-                    distance=route_distance,
-                    load=route_load,
-                    arrival_times=arrival_times,
-                )
-            )
-            total_distance += route_distance
-
-    return VRPResult(
-        status=SolverStatus.OPTIMAL,
-        routes=routes,
-        total_distance=total_distance,
-        solve_time_ms=elapsed,
-    )
+from vertex.utils.visualization import create_gantt_chart
 
 
 def solve_job_shop(
@@ -319,7 +94,7 @@ def solve_job_shop(
             )
         )
 
-    return JobShopResult(
+    result = JobShopResult(
         status=SolverStatus.OPTIMAL
         if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
@@ -327,6 +102,13 @@ def solve_job_shop(
         schedule=sorted(schedule, key=lambda t: (t.job, t.task)),
         solve_time_ms=elapsed,
     )
+    result.visualization = create_gantt_chart(
+        result.schedule,
+        title="Job Shop Schedule",
+        resource_key="machine",
+        task_key="task",
+    )
+    return result
 
 
 def solve_bin_packing(
@@ -500,7 +282,7 @@ def solve_cutting_stock(
     time_limit_seconds: int = 30,
 ) -> "CuttingStockResult":
     """Solve Cutting Stock Problem using CP-SAT."""
-    from vertex.models.scheduling import CuttingPattern, CuttingStockResult
+    from vertex.models.scheduling import CuttingStockResult
 
     start_time = time.time()
     model = cp_model.CpModel()
@@ -737,7 +519,7 @@ def solve_flow_shop(
                 )
             )
 
-    return FlowShopResult(
+    result = FlowShopResult(
         status=SolverStatus.OPTIMAL
         if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
@@ -746,6 +528,13 @@ def solve_flow_shop(
         schedule=sorted(schedule, key=lambda t: (t.job, t.task)),
         solve_time_ms=elapsed,
     )
+    result.visualization = create_gantt_chart(
+        result.schedule,
+        title="Flow Shop Schedule",
+        resource_key="machine",
+        task_key="task",
+    )
+    return result
 
 
 def solve_parallel_machines(
@@ -826,7 +615,7 @@ def solve_parallel_machines(
             )
         )
 
-    return ParallelMachineResult(
+    result = ParallelMachineResult(
         status=SolverStatus.OPTIMAL
         if status == cp_model.OPTIMAL  # type: ignore[comparison-overlap]
         else SolverStatus.FEASIBLE,
@@ -835,3 +624,10 @@ def solve_parallel_machines(
         schedule=sorted(schedule, key=lambda t: (t.machine, t.start)),
         solve_time_ms=elapsed,
     )
+    result.visualization = create_gantt_chart(
+        result.schedule,
+        title="Parallel Machine Schedule",
+        resource_key="machine",
+        task_key="job",
+    )
+    return result
