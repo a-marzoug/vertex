@@ -23,6 +23,11 @@ from vertex.models.network import (
     MultiCommodityFlowResult,
     ShortestPathResult,
 )
+from vertex.models.routing import (
+    TSPResult,
+    VRPResult,
+    VRPRoute,
+)
 from vertex.models.scheduling import (
     BinAssignment,
     BinPackingResult,
@@ -32,11 +37,9 @@ from vertex.models.scheduling import (
     GraphColoringResult,
     JobShopResult,
     ParallelMachineResult,
+    RCPSPResult,
     ScheduledTask,
     SetCoverResult,
-    TSPResult,
-    VRPResult,
-    VRPRoute,
 )
 from vertex.models.stochastic import (
     BinPacking2DResult,
@@ -94,6 +97,7 @@ __all__ = [
     "QAPResult",
     "QPResult",
     "QueueMetrics",
+    "RCPSPResult",
     "RectanglePlacement",
     "RobustResult",
     "Scenario",
