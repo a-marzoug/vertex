@@ -7,7 +7,6 @@ from vertex.tools.analysis import (
     analyze_what_if,
     diagnose_infeasibility,
     get_model_stats,
-    solve_rcpsp,
 )
 from vertex.tools.cp import NQueensResult, SudokuResult, solve_n_queens, solve_sudoku
 from vertex.tools.linear import solve_lp
@@ -25,15 +24,19 @@ from vertex.tools.network import (
     compute_shortest_path,
     compute_transshipment,
 )
+from vertex.tools.routing import (
+    compute_pickup_delivery,
+    compute_tsp,
+    compute_vrp,
+    compute_vrp_tw,
+)
 from vertex.tools.scheduling import (
     compute_bin_packing,
     compute_cutting_stock,
     compute_graph_coloring,
     compute_job_shop,
     compute_set_cover,
-    compute_tsp,
-    compute_vrp,
-    compute_vrp_tw,
+    solve_rcpsp,
 )
 from vertex.tools.sensitivity import SensitivityReport, analyze_sensitivity
 from vertex.tools.stochastic import (
