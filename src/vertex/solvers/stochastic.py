@@ -1,8 +1,7 @@
 """Solvers for stochastic and dynamic optimization problems."""
 
-from typing import Any
-
 import math
+from typing import Any
 
 from ortools.linear_solver import pywraplp
 

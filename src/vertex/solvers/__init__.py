@@ -9,15 +9,17 @@ from vertex.solvers.network import (
     solve_multi_commodity_flow,
     solve_shortest_path,
 )
+from vertex.solvers.routing import (
+    solve_tsp,
+    solve_vrp,
+    solve_vrp_time_windows,
+)
 from vertex.solvers.scheduling import (
     solve_bin_packing,
     solve_cutting_stock,
     solve_graph_coloring,
     solve_job_shop,
     solve_set_cover,
-    solve_tsp,
-    solve_vrp,
-    solve_vrp_time_windows,
 )
 from vertex.solvers.stochastic import (
     solve_lot_sizing,
