@@ -1,19 +1,28 @@
 """Vertex MCP Server - Operations Research tools for decision makers."""
 
+import os
+
 from mcp.server.fastmcp import FastMCP
 
 from vertex.config import DEFAULT_HOST, DEFAULT_PORT, SERVER_DESCRIPTION, SERVER_NAME
+from vertex.logging import configure_logging, get_logger
+from vertex.metrics import get_metrics
 from vertex.prompts.linear import formulate_lp, interpret_solution
 from vertex.prompts.mip import formulate_mip
+from vertex.prompts.network import formulate_network_problem
+from vertex.prompts.scheduling import formulate_scheduling_problem
+from vertex.prompts.selection import select_optimization_approach
+from vertex.prompts.sensitivity import interpret_sensitivity_analysis
 from vertex.tools.analysis import (
     analyze_what_if,
     diagnose_infeasibility,
     find_alternative_solutions,
     get_model_stats,
-    solve_rcpsp,
 )
 from vertex.tools.cp import solve_n_queens, solve_sudoku
 from vertex.tools.linear import solve_lp
+from vertex.tools.maintenance import optimize_equipment_replacement
+from vertex.tools.mdp import solve_discrete_mdp
 from vertex.tools.mip import solve_mip
 from vertex.tools.multiobjective import solve_multi_objective
 from vertex.tools.network import (
@@ -24,6 +33,14 @@ from vertex.tools.network import (
     compute_shortest_path,
     compute_transshipment,
 )
+from vertex.tools.nonlinear import solve_minlp, solve_nonlinear_program
+from vertex.tools.routing import (
+    compute_multi_depot_vrp,
+    compute_pickup_delivery,
+    compute_tsp,
+    compute_vrp,
+    compute_vrp_tw,
+)
 from vertex.tools.scheduling import (
     compute_bin_packing,
     compute_cutting_stock,
@@ -33,11 +50,10 @@ from vertex.tools.scheduling import (
     compute_job_shop,
     compute_parallel_machines,
     compute_set_cover,
-    compute_tsp,
-    compute_vrp,
-    compute_vrp_tw,
+    solve_rcpsp,
 )
 from vertex.tools.sensitivity import analyze_sensitivity
+from vertex.tools.simulation import optimize_simulation_parameters
 from vertex.tools.stochastic import (
     analyze_queue_mm1,
     analyze_queue_mmc,
@@ -57,6 +73,7 @@ from vertex.tools.stochastic import (
     solve_quadratic_program,
     solve_robust_optimization,
 )
+from vertex.tools.tuning import select_solver
 from vertex.tools.templates.assignment import optimize_assignment
 from vertex.tools.templates.diet import optimize_diet
 from vertex.tools.templates.facility import optimize_facility_location
@@ -76,6 +93,13 @@ mcp = FastMCP(
     host=DEFAULT_HOST,
     port=DEFAULT_PORT,
 )
+
+
+def get_system_metrics() -> str:
+    """Get current system metrics (Prometheus format)."""
+    data, _ = get_metrics()
+    return data.decode("utf-8")
+
 
 # Tools
 mcp.add_tool(solve_lp, name="solve_linear_program")
@@ -110,6 +134,8 @@ mcp.add_tool(compute_job_shop, name="solve_job_shop")
 mcp.add_tool(solve_rcpsp)
 mcp.add_tool(compute_flexible_job_shop, name="solve_flexible_job_shop")
 mcp.add_tool(compute_vrp_tw, name="solve_vrp_time_windows")
+mcp.add_tool(compute_pickup_delivery, name="solve_pickup_delivery")
+mcp.add_tool(compute_multi_depot_vrp, name="solve_multi_depot_vrp")
 mcp.add_tool(compute_bin_packing, name="solve_bin_packing")
 mcp.add_tool(compute_set_cover, name="solve_set_cover")
 mcp.add_tool(compute_graph_coloring, name="solve_graph_coloring")
@@ -133,17 +159,48 @@ mcp.add_tool(find_steiner_tree, name="solve_steiner_tree")
 mcp.add_tool(optimize_multi_echelon_inventory, name="optimize_multi_echelon")
 mcp.add_tool(solve_quadratic_program, name="solve_qp")
 mcp.add_tool(optimize_portfolio_qp, name="optimize_portfolio_variance")
+mcp.add_tool(optimize_equipment_replacement, name="optimize_equipment_replacement")
+mcp.add_tool(solve_discrete_mdp, name="solve_discrete_mdp")
+mcp.add_tool(solve_nonlinear_program, name="solve_nonlinear_program")
+mcp.add_tool(solve_minlp, name="solve_minlp")
+mcp.add_tool(optimize_simulation_parameters, name="optimize_simulation_parameters")
+mcp.add_tool(select_solver, name="select_solver")
+mcp.add_tool(get_system_metrics, name="get_system_metrics")
 
 # Prompts
 formulate_lp_problem = mcp.prompt(name="formulate_lp_problem")(formulate_lp)
 formulate_mip_problem = mcp.prompt(name="formulate_mip_problem")(formulate_mip)
 interpret_lp_solution = mcp.prompt(name="interpret_lp_solution")(interpret_solution)
+select_approach = mcp.prompt(name="select_optimization_approach")(
+    select_optimization_approach
+)
+formulate_network = mcp.prompt(name="formulate_network_problem")(
+    formulate_network_problem
+)
+formulate_scheduling = mcp.prompt(name="formulate_scheduling_problem")(
+    formulate_scheduling_problem
+)
+interpret_sensitivity = mcp.prompt(name="interpret_sensitivity_analysis")(
+    interpret_sensitivity_analysis
+)
 
 
 def main() -> None:
     """Run the Vertex MCP server."""
     import sys
     from typing import Literal
+
+    # Configure logging based on environment
+    log_level = os.getenv("VERTEX_LOG_LEVEL", "INFO")
+    json_logs = os.getenv("VERTEX_JSON_LOGS", "true").lower() == "true"
+    configure_logging(level=log_level, json_format=json_logs)
+
+    logger = get_logger(__name__)
+    logger.info(
+        "server_starting",
+        server_name=SERVER_NAME,
+        transport="stdio" if "--http" not in sys.argv else "streamable-http",
+    )
 
     transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
     if "--http" in sys.argv:
