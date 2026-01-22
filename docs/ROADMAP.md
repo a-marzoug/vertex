@@ -80,14 +80,13 @@ Focus: Robustness, User Experience, and Missing Core Models.
 
 ### Infrastructure & Usability
 
-- [ ] **Async Solving**: Support for long-running optimization jobs suitable for larger datasets.
-- [ ] **Solver Selection**: Allow users to explicitly choose between solvers (e.g., GLOP vs. SCIP vs. CP-SAT).
-- [ ] **Input/Output Formats**: Support standard formats like MPS and LP file import/export.
-- [ ] **Visualization Helpers**: Generate data structures specifically for plotting (e.g., Gantt chart JSON for scheduling).
+- [x] **Async Solving**: Support for long-running optimization jobs suitable for larger datasets.
+- [x] **Solver Selection**: Allow users to explicitly choose between solvers (e.g., GLOP vs. SCIP vs. CP-SAT).
+- [x] **Visualization Helpers**: Generate data structures specifically for plotting (e.g., Gantt chart JSON for scheduling).
 
 ### Advanced Modeling
 
-- [ ] **Maintenance Planning**: Condition-based maintenance models using equipment degradation curves.
+- [x] **Maintenance Planning**: Condition-based maintenance models using equipment degradation curves.
 
 ## Medium-Term Goals (3-6 Months)
 
@@ -95,15 +94,12 @@ Focus: Stochasticity, Simulation, and specialized Industrial Verticals.
 
 ### Uncertainty & Risk
 
-- [ ] **Markov Decision Processes (MDP)**: Framework for sequential decision-making problems (e.g., equipment replacement).
+- [x] **Markov Decision Processes (MDP)**: Framework for sequential decision-making problems (e.g., equipment replacement).
 
 ### Network Design
 
-- [ ] **Large-Scale VRP**: Metaheuristic approaches for large routing problems.
-
-### Metaheuristics
-
-- [ ] **Large-Scale VRP**: Implement metaheuristic approaches (Genetic Algorithms, Tabu Search) for large-scale routing problems where exact methods fail.
+- [x] **Large-Scale VRP**: Metaheuristic approaches enabled via configuration (Guided Local Search, Tabu Search).
+- [x] **Multi-Depot VRP**: Routing from multiple depots.
 
 ## Long-Term Vision (6-12+ Months)
 
@@ -116,11 +112,11 @@ Focus: Advanced Algorithms, Scale, and Autonomous Features.
 
 ### Nonlinear & Hybrid
 
-- [ ] **Nonlinear Programming (NLP)**: Support for non-linear objective functions and constraints.
-- [ ] **Mixed-Integer Nonlinear Programming (MINLP)**: Handling complex process engineering problems.
-- [ ] **Simulation-Optimization**: Optimization where the objective function is evaluated via discrete-event simulation.
+- [x] **Nonlinear Programming (NLP)**: Support for non-linear objective functions and constraints.
+- [x] **Mixed-Integer Nonlinear Programming (MINLP)**: Handling complex process engineering problems.
+- [x] **Simulation-Optimization**: Optimization where the objective function is evaluated via discrete-event simulation.
 
 ### AI Integration
 
 - [ ] **Predict-then-Optimize**: Tighter integration with forecasting models to automatically populate optimization parameters.
-- [ ] **Self-Tuning**: Auto-selection of solver parameters and algorithms based on problem characteristics.
+- [x] **Self-Tuning**: Auto-selection of solver parameters and algorithms based on problem characteristics.

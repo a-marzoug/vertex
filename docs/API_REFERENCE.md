@@ -1,6 +1,6 @@
 # API Reference
 
-This document provides a comprehensive reference for all tools and prompts available in the Vertex MCP Server.
+Comprehensive reference for all 65 tools and 7 prompts available in the Vertex MCP Server.
 
 ## Linear Programming (LP)
 
@@ -143,6 +143,31 @@ Solve VRP with Time Windows.
 - **locations**, **distance_matrix**, **demands**, **vehicle_capacities**: Same as VRP.
 - **time_matrix** (`list[list[int]]`): Travel time matrix.
 - **time_windows** (`list[tuple[int, int]]`): (earliest, latest) arrival time per location.
+- **depot** (`int`): Depot index (default: 0).
+- **time_limit_seconds** (`int`): Time limit.
+
+### `solve_pickup_delivery`
+
+Solve VRP with pickup and delivery constraints.
+
+- **locations** (`list[str]`): Location names.
+- **distance_matrix** (`list[list[float]]`): Distance matrix.
+- **pickups_deliveries** (`list[tuple[int, int]]`): Pairs of (pickup_location, delivery_location) indices.
+- **vehicle_capacities** (`list[int]`): Vehicle capacities.
+- **depot** (`int`): Depot index (default: 0).
+- **time_limit_seconds** (`int`): Time limit.
+
+### `solve_multi_depot_vrp`
+
+Solve VRP with multiple depots.
+
+- **locations** (`list[str]`): Location names.
+- **distance_matrix** (`list[list[float]]`): Distance matrix.
+- **demands** (`list[int]`): Demand at each location.
+- **depots** (`list[int]`): Indices of depot locations.
+- **vehicle_capacities** (`list[int]`): Vehicle capacities.
+- **vehicles_per_depot** (`list[int]`): Number of vehicles at each depot.
+- **time_limit_seconds** (`int`): Time limit.
 
 ### `solve_job_shop`
 
@@ -156,26 +181,29 @@ Schedule multi-step jobs on machines.
 Solve Flexible Job Shop - tasks can run on alternative machines.
 
 - **jobs** (`list[list[dict]]`): Each task has list of alternatives: `{"machines": [(machine_id, duration), ...]}`.
+- **time_limit_seconds** (`int`): Time limit.
 
 ### `solve_flow_shop`
 
 Solve Flow Shop Scheduling - all jobs follow same machine sequence.
 
-- **processing_times** (`list[list[int]]`): `[job][machine]` durations.
+- **processing_times** (`list[list[int]]`): `processing_times[job][machine]` = duration.
+- **time_limit_seconds** (`int`): Time limit (default: 60).
 
 ### `solve_parallel_machines`
 
-Assign jobs to identical machines minimizing makespan.
+Assign jobs to identical parallel machines minimizing makespan.
 
 - **job_durations** (`list[int]`): Duration of each job.
-- **num_machines** (`int`): Number of machines.
+- **num_machines** (`int`): Number of identical machines.
 
 ### `solve_rcpsp`
 
 Resource-Constrained Project Scheduling.
 
 - **tasks** (`list[dict]`): Tasks with `name`, `duration`, `resources` (dict), `predecessors` (list).
-- **resources** (`dict[str, int]`): Available global capacity per resource.
+- **resources** (`dict[str, int]`): Available global capacity per resource type.
+- **time_limit_seconds** (`int`): Time limit.
 
 ## Combinatorial & Discrete
 
@@ -231,30 +259,45 @@ Solve single-period stochastic inventory.
 
 ### `solve_lot_sizing`
 
-Solve dynamic lot sizing (Wagner-Whitin).
+Solve dynamic lot sizing (Wagner-Whitin algorithm).
 
-- **demands** (`list[float]`): Periodic demand.
-- **setup_cost**, **holding_cost**, **production_cost**.
+- **demands** (`list[float]`): Demand for each period.
+- **setup_cost** (`float`): Fixed cost to place an order.
+- **holding_cost** (`float`): Cost to hold one unit for one period.
+- **production_cost** (`float`): Variable cost per unit produced.
 
 ### `solve_robust_production`
 
-Robust optimization under demand uncertainty (Bertsimas-Sim).
+Robust optimization under demand uncertainty (Bertsimas-Sim approach).
 
-- **products**, **nominal_demand**, **demand_deviation**, **uncertainty_budget** (Gamma), **costs**.
+- **products** (`list[str]`): Product names.
+- **nominal_demand** (`dict[str, float]`): Expected demand per product.
+- **demand_deviation** (`dict[str, float]`): Maximum deviation from nominal.
+- **uncertainty_budget** (`float`): Gamma parameter - max number of deviations.
+- **production_costs** (`dict[str, float]`): Cost per unit.
+- **selling_prices** (`dict[str, float]`): Revenue per unit.
+- **capacity** (`float`): Optional production capacity limit.
 
 ## Queueing Analysis
 
 ### `analyze_mm1_queue`
 
-Analyze M/M/1 queue (single server).
+Analyze M/M/1 queue (single server) performance metrics.
 
-- **arrival_rate** (lambda), **service_rate** (mu).
+- **arrival_rate** (`float`): Lambda - average arrival rate.
+- **service_rate** (`float`): Mu - average service rate.
+
+Returns: utilization, average queue length, average wait time, probability of empty system.
 
 ### `analyze_mmc_queue`
 
-Analyze M/M/c queue (multiple servers).
+Analyze M/M/c queue (multiple servers) performance metrics.
 
-- **arrival_rate**, **service_rate**, **num_servers**.
+- **arrival_rate** (`float`): Lambda - average arrival rate.
+- **service_rate** (`float`): Mu - average service rate per server.
+- **num_servers** (`int`): Number of parallel servers.
+
+Returns: utilization, average queue length, average wait time, probability of waiting.
 
 ## Monte Carlo Simulation
 
@@ -285,12 +328,13 @@ Solve crew/shift scheduling with constraints.
 
 - **workers** (`list[str]`): Worker names.
 - **days** (`int`): Number of days to schedule.
-- **shifts** (`list[str]`): Shift names.
-- **requirements** (`dict[str, list[int]]`): shift -> [required workers per day].
-- **worker_availability**: Optional worker -> [(day, shift)] availability.
-- **costs**: Cost per worker.
-- **max_shifts_per_worker**: Maximum shifts per worker.
-- **min_rest_between_shifts**: Minimum rest periods.
+- **shifts** (`list[str]`): Shift names (e.g., ["morning", "afternoon", "night"]).
+- **requirements** (`dict[str, list[int]]`): Required workers per shift per day - `{shift: [day0_count, day1_count, ...]}`.
+- **worker_availability** (`dict[str, list[tuple[int, str]]]`): Optional - `{worker: [(day, shift), ...]}` of available slots.
+- **costs** (`dict[str, float]`): Cost per worker per shift.
+- **max_shifts_per_worker** (`int`): Maximum shifts per worker over the period.
+- **min_rest_between_shifts** (`int`): Minimum days of rest between shifts.
+- **time_limit_seconds** (`int`): Solver time limit.
 
 ## Chance-Constrained Programming
 
@@ -456,27 +500,155 @@ Supply chain network design.
 
 - **facilities**, **customers**, **fixed_costs**, **capacities**, **demands**, **transport_costs**.
 
+## Nonlinear Programming
+
+### `solve_nonlinear_program`
+
+Solve nonlinear programming problems using SciPy optimizers.
+
+- **variables** (`list[dict]`): Variable definitions with `name`, `initial_value`, `lower_bound`, `upper_bound`.
+- **objective** (`str`): Python expression for objective function (e.g., `"x**2 + y**2"`).
+- **constraints** (`list[dict]`): Constraints with `expression` (Python string) and `type` ("eq" or "ineq").
+- **objective_sense** (`str`): "minimize" or "maximize".
+- **method** (`str`): Solver method - "SLSQP", "trust-constr", "differential_evolution" (default: "SLSQP").
+
+### `solve_minlp`
+
+Solve Mixed-Integer Nonlinear Programming problems.
+
+- **variables** (`list[dict]`): Variables with `name`, `type` ("continuous", "integer", "binary"), `initial_value`, bounds.
+- **objective** (`str`): Python expression for objective.
+- **constraints** (`list[dict]`): Nonlinear constraints.
+- **objective_sense** (`str`): "minimize" or "maximize".
+
+## Markov Decision Processes
+
+### `solve_discrete_mdp`
+
+Solve discrete Markov Decision Processes using value iteration or policy iteration.
+
+- **states** (`list[str]`): State names.
+- **actions** (`list[str]`): Action names.
+- **transitions** (`dict`): Transition probabilities - `{(state, action): [(next_state, probability), ...]}`.
+- **rewards** (`dict`): Rewards - `{(state, action, next_state): reward}`.
+- **discount_factor** (`float`): Discount factor gamma (default: 0.9).
+- **algorithm** (`str`): "value_iteration" or "policy_iteration" (default: "value_iteration").
+- **max_iterations** (`int`): Maximum iterations (default: 1000).
+- **tolerance** (`float`): Convergence tolerance (default: 1e-6).
+
+### `optimize_equipment_replacement`
+
+Optimize equipment replacement policy using MDP.
+
+- **equipment_name** (`str`): Equipment identifier.
+- **max_age** (`int`): Maximum equipment age.
+- **purchase_cost** (`float`): Cost to purchase new equipment.
+- **maintenance_costs** (`list[float]`): Maintenance cost per age.
+- **salvage_values** (`list[float]`): Salvage value per age.
+- **failure_probabilities** (`list[float]`): Failure probability per age.
+- **discount_factor** (`float`): Discount factor (default: 0.9).
+
+## Simulation & Optimization
+
+### `optimize_simulation_parameters`
+
+Optimize parameters using simulation-based black-box optimization.
+
+- **parameter_names** (`list[str]`): Names of parameters to optimize.
+- **parameter_bounds** (`list[tuple[float, float]]`): (min, max) bounds for each parameter.
+- **simulation_function** (`str`): Python code defining simulation (must return float objective value).
+- **objective_sense** (`str`): "minimize" or "maximize".
+- **num_iterations** (`int`): Number of optimization iterations (default: 100).
+- **num_simulations_per_eval** (`int`): Simulations per parameter evaluation (default: 100).
+
+## Solver Selection
+
+### `select_solver`
+
+Automatically recommend the best solver for given problem characteristics.
+
+- **problem_type** (`str`): "lp", "mip", "qp", "nlp", "minlp", "network", "routing", "scheduling", "stochastic".
+- **num_variables** (`int`): Number of variables.
+- **num_constraints** (`int`): Number of constraints.
+- **has_integer_vars** (`bool`): Whether problem has integer variables.
+- **has_binary_vars** (`bool`): Whether problem has binary variables.
+- **is_quadratic** (`bool`): Whether objective/constraints are quadratic.
+- **is_nonlinear** (`bool`): Whether problem is nonlinear.
+- **sparsity** (`float`): Constraint matrix sparsity (0-1).
+
+Returns recommended solver with rationale.
+
+## System Metrics
+
+### `get_system_metrics`
+
+Get server performance metrics in Prometheus format.
+
+Returns:
+- Tool call counts and durations
+- Error rates
+- Active solves
+- System resource usage
+
 ## Analysis Tools
 
 ### `get_model_statistics`
 
 Get model size, sparsity, and type breakdown.
 
-- **variables**, **constraints**.
+- **variables** (`list[dict]`): Variable definitions.
+- **constraints** (`list[dict]`): Constraint definitions.
+
+Returns statistics about problem structure.
+
+### `find_alternative_solutions`
+
+Find multiple near-optimal solutions for MIP problems.
+
+- **variables**, **constraints**, **objective_coefficients**, **objective_sense**: Standard MIP inputs.
+- **max_solutions** (`int`): Maximum solutions to return (default: 5).
+- **gap_tolerance** (`float`): Accept solutions within this fraction of optimal (default: 0.01).
 
 ## Prompts
+
+### `select_optimization_approach`
+
+**Argument**: `problem_description` (str)
+
+Help select the right tool/algorithm for a problem based on natural language description.
 
 ### `formulate_lp_problem`
 
 **Argument**: `problem_description` (str)
-Help formulate a Linear Programming problem from natural language.
+
+Guide for extracting LP components (variables, constraints, objective) from natural language.
 
 ### `formulate_mip_problem`
 
 **Argument**: `problem_description` (str)
-Help formulate a Mixed-Integer Programming problem from natural language.
+
+Guide for formulating Mixed-Integer Programming problems from natural language.
+
+### `formulate_network_problem`
+
+**Argument**: `problem_description` (str)
+
+Guide for formulating network flow problems from natural language.
+
+### `formulate_scheduling_problem`
+
+**Argument**: `problem_description` (str)
+
+Guide for formulating scheduling problems from natural language.
 
 ### `interpret_lp_solution`
 
-**Arguments**: `status`, `objective_value`, `variable_values`, `problem_context`.
-Interpret optimization results for decision makers.
+**Arguments**: `status`, `objective_value`, `variable_values`, `problem_context`
+
+Interpret optimization results for decision makers in plain language.
+
+### `interpret_sensitivity_analysis`
+
+**Arguments**: `shadow_prices`, `reduced_costs`, `problem_context`
+
+Explain shadow prices and reduced costs to decision makers.
