@@ -2,7 +2,14 @@
 
 from typing import Any
 
-from vertex.config import ConstraintSense, ObjectiveSense, VariableType
+from vertex.config import (
+    DEFAULT_TIMEOUT_MS,
+    ConstraintSense,
+    ObjectiveSense,
+    SolverType,
+    VariableType,
+)
+from vertex.metrics import track_solve_metrics
 from vertex.models.mip import (
     MIPConstraint,
     MIPObjective,
@@ -11,13 +18,20 @@ from vertex.models.mip import (
     MIPVariable,
 )
 from vertex.solvers.mip import MIPSolver
+from vertex.utils.async_utils import run_in_executor
+from vertex.validation import validate_problem_size, validate_timeout
 
 
-def solve_mip(
+@track_solve_metrics(tool_name="solve_mixed_integer_program")
+@validate_problem_size()
+@validate_timeout()
+async def solve_mip(
     variables: list[dict[str, Any]],
     constraints: list[dict[str, Any]],
     objective_coefficients: dict[str, float],
     objective_sense: str = "maximize",
+    solver_type: str = SolverType.SCIP,
+    time_limit_ms: int = DEFAULT_TIMEOUT_MS,
 ) -> MIPSolution:
     """
     Solve a Mixed-Integer Programming problem.
@@ -30,6 +44,8 @@ def solve_mip(
             Example: [{"coefficients": {"x": 1, "y": 2}, "sense": "<=", "rhs": 10}]
         objective_coefficients: Variable coefficients in objective.
         objective_sense: "maximize" or "minimize".
+        solver_type: Backend solver to use (SCIP, SAT, GLOP - though GLOP ignores integers).
+        time_limit_ms: Maximum solve time in milliseconds (default: 5 minutes).
 
     Returns:
         MIPSolution with status, objective_value, and variable_values.
@@ -58,4 +74,5 @@ def solve_mip(
         ),
     )
 
-    return MIPSolver().solve(problem)
+    solver = MIPSolver(solver_type=SolverType(solver_type), time_limit_ms=time_limit_ms)
+    return await run_in_executor(solver.solve, problem)
