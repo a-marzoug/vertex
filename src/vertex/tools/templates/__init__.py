@@ -1,7 +1,6 @@
 """Domain-specific optimization templates."""
 
 from vertex.tools.templates.assignment import AssignmentResult, optimize_assignment
-from vertex.tools.templates.diet import DietResult, optimize_diet
 from vertex.tools.templates.facility import FacilityResult, optimize_facility_location
 from vertex.tools.templates.healthcare import (
     ResourceAllocationResult,
@@ -25,7 +24,6 @@ from vertex.tools.templates.workforce import (
 
 __all__ = [
     "AssignmentResult",
-    "DietResult",
     "EOQResult",
     "FacilityResult",
     "KnapsackResult",
@@ -37,7 +35,6 @@ __all__ = [
     "SupplyChainResult",
     "WorkforceResult",
     "optimize_assignment",
-    "optimize_diet",
     "optimize_eoq",
     "optimize_facility_location",
     "optimize_knapsack",

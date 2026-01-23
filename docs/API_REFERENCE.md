@@ -424,20 +424,6 @@ Markowitz mean-variance portfolio optimization.
 - **risk_free_rate** (`float`): Risk-free rate for Sharpe ratio calculation.
 - **max_weight**, **min_weight**: Weight bounds per asset.
 
-## Constraint Programming
-
-### `solve_sudoku_puzzle`
-
-Solve a 9x9 Sudoku grid.
-
-- **grid**: `list[list[int]]` (0 for empty).
-
-### `solve_n_queens_puzzle`
-
-Place N queens on NxN board.
-
-- **n**: `int`.
-
 ## Domain Templates
 
 ### `optimize_production_plan`
@@ -445,12 +431,6 @@ Place N queens on NxN board.
 Maximize profit given resource constraints.
 
 - **products**, **resources**, **profits**, **requirements**, **availability**.
-
-### `optimize_diet_plan`
-
-Minimize cost meeting nutritional requirements.
-
-- **foods**, **nutrients**, **costs**, **nutrition_values**, **min_requirements**.
 
 ### `optimize_investment_portfolio`
 
@@ -585,6 +565,7 @@ Returns recommended solver with rationale.
 Get server performance metrics in Prometheus format.
 
 Returns:
+
 - Tool call counts and durations
 - Error rates
 - Active solves

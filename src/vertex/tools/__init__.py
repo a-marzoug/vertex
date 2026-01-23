@@ -8,7 +8,6 @@ from vertex.tools.analysis import (
     diagnose_infeasibility,
     get_model_stats,
 )
-from vertex.tools.cp import NQueensResult, SudokuResult, solve_n_queens, solve_sudoku
 from vertex.tools.linear import solve_lp
 from vertex.tools.mip import solve_mip
 from vertex.tools.multiobjective import (
@@ -81,16 +80,12 @@ __all__ = [
     "InfeasibilityResult",
     "ModelStats",
     "MultiObjectiveResult",
-    "NQueensResult",
     "ParetoPoint",
     "SensitivityReport",
     "solve_lp",
     "solve_mip",
     "solve_multi_objective",
-    "solve_n_queens",
     "solve_rcpsp",
-    "solve_sudoku",
-    "SudokuResult",
     "WhatIfResult",
     "compute_lot_sizing",
     "compute_newsvendor",

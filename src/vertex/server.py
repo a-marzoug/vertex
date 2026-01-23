@@ -19,7 +19,6 @@ from vertex.tools.analysis import (
     find_alternative_solutions,
     get_model_stats,
 )
-from vertex.tools.cp import solve_n_queens, solve_sudoku
 from vertex.tools.linear import solve_lp
 from vertex.tools.maintenance import optimize_equipment_replacement
 from vertex.tools.mdp import solve_discrete_mdp
@@ -75,7 +74,6 @@ from vertex.tools.stochastic import (
 )
 from vertex.tools.tuning import select_solver
 from vertex.tools.templates.assignment import optimize_assignment
-from vertex.tools.templates.diet import optimize_diet
 from vertex.tools.templates.facility import optimize_facility_location
 from vertex.tools.templates.healthcare import optimize_resource_allocation
 from vertex.tools.templates.inventory import optimize_eoq
@@ -108,11 +106,8 @@ mcp.add_tool(analyze_what_if, name="analyze_what_if_scenario")
 mcp.add_tool(diagnose_infeasibility)
 mcp.add_tool(get_model_stats, name="get_model_statistics")
 mcp.add_tool(solve_multi_objective, name="solve_pareto_frontier")
-mcp.add_tool(solve_sudoku, name="solve_sudoku_puzzle")
-mcp.add_tool(solve_n_queens, name="solve_n_queens_puzzle")
 mcp.add_tool(find_alternative_solutions, name="find_alternative_optimal_solutions")
 mcp.add_tool(optimize_production, name="optimize_production_plan")
-mcp.add_tool(optimize_diet, name="optimize_diet_plan")
 mcp.add_tool(optimize_portfolio, name="optimize_investment_portfolio")
 mcp.add_tool(solve_mip, name="solve_mixed_integer_program")
 mcp.add_tool(optimize_assignment, name="optimize_worker_assignment")

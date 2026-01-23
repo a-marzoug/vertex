@@ -45,6 +45,9 @@ async def solve_lp(
     Returns:
         Solution with status, objective_value, variable_values, and solve_time_ms.
     """
+    if not variables:
+        raise ValueError("Problem must have at least one variable")
+
     problem = LPProblem(
         variables=[
             Variable(
