@@ -1,158 +1,75 @@
 # Analysis Tools Test Scenarios
 
-This document contains test scenarios for sensitivity analysis, infeasibility diagnosis, and constraint programming. Feed these prompts to an LLM to test the tools.
+This document contains test scenarios for sensitivity analysis, infeasibility diagnosis, and solution analysis in industrial contexts.
 
 ## Sensitivity Analysis
 
-### Scenario 1: Shadow Prices
+### Scenario 1: Refinery Shadow Prices
 
 **Prompt:**
-"Maximize the objective function `3x + 4y` subject to:
+"Maximize profit for a refinery blending Gas ($50/bbl) and Diesel ($40/bbl).
+**Constraints**:
 
-1. `x + 2y <= 14` (Resource A)
-2. `3x - y >= 0` (Resource B)
-3. `x - y <= 2` (Resource C)
-
-After solving, analyze the sensitivity. What are the shadow prices for the constraints? Which resources are binding?"
-
+- Crude Oil: <= 5000 bbl
+- Distillation Capacity: <= 4000 hours
+- Crack Spread Constraint: Gas >= 0.4 * Total Output
+After solving, analyze the sensitivity. What is the marginal value (shadow price) of one additional barrel of Crude Oil? Is Distillation Capacity binding?"
 *(Expected Tool: `analyze_lp_sensitivity`)*
 
----
-
-### Scenario 2: Reduced Costs
+### Scenario 2: Reduced Costs in Logistics
 
 **Prompt:**
-"Using the same problem:
-Maximize `3x + 4y` subject to `x + 2y <= 14`, `3x - y >= 0`, `x - y <= 2`.
-
-Report the reduced costs for the variables x and y."
-
+"Optimize shipping from 2 Warehouses to 2 Cities.
+Route W1->C1 is currently unused in the optimal solution.
+Report the reduced cost for the variable `flow_W1_C1`. How much would the shipping cost on this route need to drop for it to become viable?"
 *(Expected Tool: `analyze_lp_sensitivity`)*
-
----
 
 ## What-If Analysis
 
-### Scenario 3: Resource Variation
+### Scenario 3: Raw Material Price Shock
 
 **Prompt:**
-"For the problem: Maximize `3x + 4y` subject to `x + 2y <= 10` (and non-negativity).
-Perform a What-If analysis on the constraint `x + 2y <= 10`.
-Vary the Right-Hand Side (RHS) from 8 to 14 in increments of 2.
-How does the maximum profit change?"
-
+"For a furniture factory maximizing profit:
+Constraint `Wood <= 1000`.
+Perform a What-If analysis on the Wood availability constraint.
+Vary the RHS from 800 to 1200 in increments of 50.
+How does the maximum profit change? Plot the impact."
 *(Expected Tool: `analyze_what_if_scenario`)*
-
----
 
 ## Infeasibility Diagnosis
 
-### Scenario 4: Simple Conflict
+### Scenario 4: Conflicting Shift Requirements
 
 **Prompt:**
-"Diagnose why this linear program is infeasible:
+"Diagnose why this nurse schedule is infeasible:
 
-- `x >= 10`
-- `x <= 5`
-- Objective: Maximize `x`
-
+- `Total_Nurses <= 5` (Budget cut)
+- `Day_Shift >= 3` (Minimum staffing)
+- `Night_Shift >= 3` (Minimum staffing)
+- `Total_Nurses = Day_Shift + Night_Shift`
 Find the conflicting constraints."
-
 *(Expected Tool: `diagnose_infeasibility`)*
-
----
-
-### Scenario 5: Hidden Conflict
-
-**Prompt:**
-"Explain the infeasibility in this system:
-
-1. `x + y <= 10`
-2. `x >= 8`
-3. `y >= 5`
-
-Objective can be anything (e.g., Max `x+y`). Identify the minimal set of conflicting constraints."
-
-*(Expected Tool: `diagnose_infeasibility`)*
-
----
-
-## Constraint Programming
-
-### Scenario 6: Sudoku Solver
-
-**Prompt:**
-"Solve this Sudoku puzzle:
-(Input as a grid where 0 is blank)
-Row 1: 5 3 0 | 0 7 0 | 0 0 0
-Row 2: 6 0 0 | 1 9 5 | 0 0 0
-Row 3: 0 9 8 | 0 0 0 | 0 6 0
-Row 4: 8 0 0 | 0 6 0 | 0 0 3
-Row 5: 4 0 0 | 8 0 3 | 0 0 1
-Row 6: 7 0 0 | 0 2 0 | 0 0 6
-Row 7: 0 6 0 | 0 0 0 | 2 8 0
-Row 8: 0 0 0 | 4 1 9 | 0 0 5
-Row 9: 0 0 0 | 0 8 0 | 0 7 9
-
-Please fill in the blanks."
-
-*(Expected Tool: `solve_sudoku_puzzle`)*
-
----
-
-### Scenario 7: N-Queens
-
-**Prompt:**
-"Find a valid placement for 8 Queens on an 8x8 chess board such that no two queens attack each other."
-
-*(Expected Tool: `solve_n_queens_puzzle`)*
-
----
 
 ## Multi-Objective Optimization
 
-### Scenario 8: Profit vs Quality
+### Scenario 5: Profit vs Environmental Impact
 
 **Prompt:**
-"Find the Pareto Frontier for this bi-objective problem:
+"Find the Pareto Frontier for a manufacturing plant:
 
-- **Obj 1 (Profit)**: Maximize `3x + 2y`
-- **Obj 2 (Quality)**: Maximize `x + 4y`
-- **Constraint**: `x + y <= 10`
-- bounds: x>=0, y>=0
-
-Generate 5 points on the frontier."
-
+- **Obj 1 (Profit)**: Maximize Revenue - Cost
+- **Obj 2 (Sustainability)**: Minimize Carbon Emissions
+- **Variables**: Product A (High profit, high carbon), Product B (Low profit, low carbon).
+- **Constraint**: Total Production <= 1000.
+Generate 5 points on the frontier to show the trade-off."
 *(Expected Tool: `solve_pareto_frontier`)*
-
----
 
 ## Solution Enumeration
 
-### Scenario 9: Multiple Optimal Solutions
+### Scenario 6: Alternative Supply Chain Routes
 
 **Prompt:**
-"Find multiple optimal solutions for this knapsack problem:
-Capacity = 5.
-Items:
-
-- A: Value 3, Weight 2
-- B: Value 3, Weight 2
-- C: Value 3, Weight 2
-
-Maximize Value. Return up to 3 alternative solutions."
-
-*(Expected Tool: `find_alternative_optimal_solutions`)*
-
----
-
-### Scenario 10: Near-Optimal Pool
-
-**Prompt:**
-"Find the optimal solution and 4 other solutions within 10% of the optimal value for:
-Maximize `x + y`
-Subject to:
-`2x + 2y <= 10`
-`x, y` are integers >= 0."
-
+"Find multiple optimal supply chain configurations for a network design problem.
+We want to see 3 different sets of active warehouses that achieve within 1% of the minimum cost.
+This helps us consider qualitative factors like political stability not in the model."
 *(Expected Tool: `find_alternative_optimal_solutions`)*

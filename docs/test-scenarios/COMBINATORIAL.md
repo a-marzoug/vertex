@@ -1,270 +1,135 @@
 # Combinatorial Optimization Test Scenarios
 
-This document contains test scenarios to verify the Vertex MCP server's combinatorial optimization capabilities (packing, covering, coloring). Feed these prompts to an LLM to test the tools.
+This document contains test scenarios to verify the Vertex MCP server's combinatorial optimization capabilities (packing, covering, coloring) using realistic industrial contexts.
 
 ## Bin Packing
 
-### Scenario 1: Simple Packing
+### Scenario 1: Cloud Container Allocation
 
 **Prompt:**
-"Pack these items into the fewest number of bins possible.
-**Bin Capacity**: 60 units.
+"Optimize the placement of microservices onto physical servers (nodes) to minimize the number of servers used.
+**Node Capacity**: 128 GB RAM.
+**Services (RAM Requirement):**
 
-**Items (Weight):**
-
-- A: 40
-- B: 30
-- C: 35
-- D: 25
-- E: 20
-
-How many bins are needed and what is the packing configuration?"
-
+- Service A: 64 GB
+- Service B: 32 GB
+- Service C: 16 GB
+- Service D: 8 GB
+- Service E: 48 GB
+How many nodes are needed and what is the placement configuration?"
 *(Expected Tool: `solve_bin_packing`)*
 
----
-
-### Scenario 2: Tight Fit
+### Scenario 2: Logistics Container Loading
 
 **Prompt:**
-"I have items with weights: [50, 50, 50, 50, 25, 25, 25, 25].
-My bin capacity is **100**.
-Can you pack these into exactly 3 bins?"
-
+"Pack shipping pallets into standard 40ft containers.
+**Container Weight Limit**: 25,000 kg.
+**Pallet Weights**: [2000, 5000, 5000, 12000, 8000, 4000, 2000, 3000].
+Minimize the number of containers required."
 *(Expected Tool: `solve_bin_packing`)*
-
----
-
-### Scenario 3: First Fit Challenge
-
-**Prompt:**
-"Optimize the packing of these items: [7, 5, 3, 8, 6, 4, 2, 9].
-**Bin Capacity**: 10.
-Compare a simple strategy vs the optimal one. Minimize the bin count."
-
-*(Expected Tool: `solve_bin_packing`)*
-
----
 
 ## Set Covering
 
-### Scenario 4: Simple Set Cover
+### Scenario 3: Airline Crew Pairing
 
 **Prompt:**
-"I need to cover all elements in the Universe {1, 2, 3, 4, 5} using the minimum cost selection of sets.
+"Select the minimum number of crew pairings to cover all flight legs.
+**Flight Legs**: {L1, L2, L3, L4, L5}
+**Candidate Pairings (Cost 1 each):**
 
-**Available Sets:**
-
-- **S1**: {1, 2, 3} (Cost 5)
-- **S2**: {2, 4} (Cost 3)
-- **S3**: {3, 4} (Cost 3)
-- **S4**: {4, 5} (Cost 4)
-
-Which sets should I pick?"
-
+- P1: {L1, L2}
+- P2: {L2, L3}
+- P3: {L3, L4, L5}
+- P4: {L1, L5}
+- P5: {L4}
+Which pairings should be selected?"
 *(Expected Tool: `compute_set_cover`)*
 
----
-
-### Scenario 5: Fire Station Coverage
+### Scenario 4: Emergency Siren Placement
 
 **Prompt:**
-"Select the best locations for fire stations to ensure all 6 neighborhoods (N1-N6) are covered at minimum cost.
+"Determine the optimal locations for emergency sirens to ensure 100% coverage of all city districts.
+**Districts**: {D1, D2, D3, D4, D5, D6}
+**Potential Locations:**
 
-**Station Options:**
-
-- **Station A**: Covers N1, N2, N3. (Cost 100)
-- **Station B**: Covers N2, N4, N5. (Cost 80)
-- **Station C**: Covers N3, N5, N6. (Cost 90)
-- **Station D**: Covers N1, N6. (Cost 70)
-
-What is the optimal selection?"
-
+- Loc A: Covers {D1, D2, D3} (Cost $10k)
+- Loc B: Covers {D2, D4, D6} (Cost $12k)
+- Loc C: Covers {D3, D5} (Cost $8k)
+- Loc D: Covers {D4, D5, D6} (Cost $10k)
+- Loc E: Covers {D1, D6} (Cost $9k)
+Minimize total cost."
 *(Expected Tool: `compute_set_cover`)*
-
----
-
-### Scenario 6: Airline Crew Scheduling
-
-**Prompt:**
-"Assign crew pairings to cover all Flights {101, 102, 103, 104, 105, 106} with minimum pairings used (assume cost=1 per pairing).
-
-**Pairing Options:**
-
-- **P1**: Flights {101, 102, 103}
-- **P2**: Flights {102, 104}
-- **P3**: Flights {103, 105, 106}
-- **P4**: Flights {104, 106}
-
-Find the cover."
-
-*(Expected Tool: `compute_set_cover`)*
-
----
 
 ## Graph Coloring
 
-### Scenario 7: Topology Coloring
+### Scenario 5: Telecom Frequency Assignment
 
 **Prompt:**
-"Determine the minimum number of colors needed to color this graph such that no connected nodes share a color.
+"Assign frequencies to cell towers such that adjacent towers (which interfere) do not share the same frequency. Minimize the number of unique frequencies used.
+**Towers (Nodes)**: {T1, T2, T3, T4, T5}
+**Interference (Edges)**:
 
-**Graph Topology:**
-
-- a 'triangle' formed by A-B, B-C, C-A.
-- C is also connected to D.
-
-What is the chromatic number?"
-
+- T1-T2, T1-T3
+- T2-T3, T2-T4
+- T3-T5
+- T4-T5
+What is the minimum spectrum required?"
 *(Expected Tool: `compute_graph_coloring`)*
 
----
-
-### Scenario 8: Bipartite Check
+### Scenario 6: Compiler Register Allocation
 
 **Prompt:**
-"Color the graph with Nodes {1..6} and Edges:
-1-4, 1-5, 2-4, 2-6, 3-5, 3-6.
-Minimize the number of colors."
+"Assign physical CPU registers to variables based on their liveness interference.
+**Variables**: {v1, v2, v3, v4, v5, v6}
+**Interference Graph**:
 
+- v1 interferes with v2, v3
+- v2 interferes with v1, v4, v5
+- v3 interferes with v1, v6
+- v4 interferes with v2, v5
+- v5 interferes with v2, v4, v6
+Minimize the number of registers."
 *(Expected Tool: `compute_graph_coloring`)*
-
----
-
-### Scenario 9: Exam Scheduling
-
-**Prompt:**
-"Schedule exams into the minimum number of time slots so that no conflicting exams occur at the same time.
-
-**Conflicts (Students share these classes):**
-
-- **Math**: Physics, CS
-- **Physics**: Math, Chemistry
-- **CS**: Math, English
-- **Chemistry**: Physics
-- **English**: CS
-
-How many slots are required?"
-
-*(Expected Tool: `compute_graph_coloring`)*
-
----
-
-### Scenario 10: Register Allocation
-
-**Prompt:**
-"In a compiler, live variables interfering with each other need different physical registers.
-**Interference Graph:**
-
-- **a**: intersects b, c
-- **b**: intersects a, d
-- **c**: intersects a, d
-- **d**: intersects b, c
-
-Find the minimum registers needed (chromatic number)."
-
-*(Expected Tool: `compute_graph_coloring`)*
-
----
 
 ## Cutting Stock
 
-### Scenario 11: Lumber Cutting
+### Scenario 7: Steel Coil Slitting
 
 **Prompt:**
-"We have stock lumber of length **100cm**.
-**Orders:**
+"Optimize the cutting of master steel coils into narrower strips for customer orders.
+**Master Coil Width**: 1500 mm.
+**Customer Orders**:
 
-- 3 pieces of 45cm
-- 4 pieces of 30cm
-- 2 pieces of 25cm
-
-How should we cut the stock to use the fewest total boards?"
-
+- 15 coils of 600 mm
+- 20 coils of 450 mm
+- 10 coils of 300 mm
+Minimize the total number of master coils used and waste."
 *(Expected Tool: `compute_cutting_stock`)*
 
----
-
-### Scenario 12: Steel Bar Optimization
+### Scenario 8: Paper Roll Trim Loss
 
 **Prompt:**
-"Minimize waste when cutting standard **12m** steel bars into:
+"A paper mill produces 200-inch wide rolls.
+Orders:
 
-- 10 bars of 3m
-- 8 bars of 4m
-- 6 bars of 5m
-
-What is the cutting pattern?"
-
+- 50 rolls of 80 inches
+- 30 rolls of 60 inches
+- 40 rolls of 50 inches
+Find the cutting patterns that minimize trim loss."
 *(Expected Tool: `compute_cutting_stock`)*
-
----
-
-### Scenario 13: Paper Roll Trim Loss
-
-**Prompt:**
-"A paper mill produces master rolls of width **200cm**.
-Customers ordered:
-
-- 20 rolls of 50cm
-- 15 rolls of 60cm
-- 10 rolls of 80cm
-
-Find the combination of cutting patterns that minimizes the number of master rolls used."
-
-*(Expected Tool: `compute_cutting_stock`)*
-
----
 
 ## Knapsack Variants
 
-### Scenario 14: Classic 0/1 Knapsack
+### Scenario 9: Capital Budgeting
 
 **Prompt:**
-"Solve the 0/1 Knapsack problem. **Capacity = 50**.
+"Select capital projects to fund within a $10M budget to maximize ROI.
+**Projects:**
 
-**Items:**
-
-- **A**: Val 60, Wgt 10
-- **B**: Val 100, Wgt 20
-- **C**: Val 120, Wgt 30
-
-Maximize total value."
-
+- Project Alpha: Cost $3M, NPV $5M
+- Project Beta: Cost $4M, NPV $6M
+- Project Gamma: Cost $2M, NPV $3.5M
+- Project Delta: Cost $5M, NPV $8M
+- Project Epsilon: Cost $1M, NPV $1.2M
+Maximize total Net Present Value (NPV)."
 *(Expected Tool: `optimize_knapsack_selection`)*
-
----
-
-### Scenario 15: Multiple Knapsacks
-
-**Prompt:**
-"We have **2 knapsacks**, each with capacity **15**.
-**Items to pack (Value, Weight):**
-
-- A: (10, 5)
-- B: (15, 8)
-- C: (12, 6)
-- D: (8, 4)
-- E: (20, 10)
-
-Allocate items to knapsacks to maximize total value."
-
-*(Expected Tool: `optimize_knapsack_selection` or `solve_bin_packing` if interpreted as packing, but bin packing minimizes bins. For value max with multiple bins, use `solve_mixed_integer_program` or heuristic.)*
-
-*(Correction: The standard knapsack tool is single-container. This prompts a check if the server supports `multiple_knapsack` or if it requires MIP)*
-
----
-
-### Scenario 16: Bounded Knapsack
-
-**Prompt:**
-"Select items to maximize value. Capacity: **100**.
-**Items (Multiple copies available):**
-
-- **Type A**: Val 10, Wgt 5 (Max 5 items)
-- **Type B**: Val 15, Wgt 8 (Max 3 items)
-- **Type C**: Val 20, Wgt 12 (Max 4 items)
-
-What is the optimal mix?"
-
-*(Expected Tool: `optimize_knapsack_selection` or MIP)*
