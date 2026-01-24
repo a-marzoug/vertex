@@ -1,0 +1,195 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+          
+      - name: Install dependencies
+        run: uv sync
+        
+      - name: Check lockfile consistency
+        run: uv lock --check
+        
+      - name: Lint with Ruff
+        run: uv run ruff check .
+        
+      - name: Format check with Ruff
+        run: uv run ruff format --check .
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+          
+      - name: Install dependencies
+        run: uv sync
+        
+      - name: Type check with Mypy
+        run: uv run mypy src/vertex
+
+  test:
+    name: Test (Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ["3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Install dependencies
+        run: uv sync
+        
+      - name: Run tests with coverage
+        run: uv run pytest --cov=src/vertex --cov-report=xml --cov-report=term-missing -v
+        
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, test]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+          
+      - name: Install dependencies
+        run: uv sync
+        
+      - name: Build package
+        run: uv build
+        
+      - name: Check package metadata
+        run: uv run twine check dist/*
+        
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  docker:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    needs: [lint, type-check, test]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Build stdio image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile.stdio
+          push: false
+          tags: vertex-mcp:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: Build HTTP image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile.http
+          push: false
+          tags: vertex-mcp-http:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          
+      - name: Test stdio container
+        run: |
+          docker run --rm vertex-mcp:test --help
+          
+      - name: Test HTTP container with MCP protocol
+        run: |
+          docker run -d --name vertex-test -p 8000:8000 vertex-mcp-http:test
+          sleep 10
+          docker logs vertex-test
+          # Test MCP initialization endpoint
+          curl -X POST http://localhost:8000/mcp \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ci-test","version":"1.0"}},"id":1}' \
+            | grep -q '"serverInfo"' || (docker logs vertex-test && exit 1)
+          docker stop vertex-test
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+          
+      - name: Install dependencies
+        run: uv sync
+        
+      - name: Run safety check
+        run: uv run pip-audit || true
+        continue-on-error: true
+        
+      - name: Run bandit security linter
+        run: uv run bandit -r src/vertex -ll || true
+        continue-on-error: true
