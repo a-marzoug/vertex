@@ -27,10 +27,7 @@ jobs:
           python-version-file: ".python-version"
           
       - name: Install dependencies
-        run: uv sync
-        
-      - name: Check lockfile consistency
-        run: uv lock --check
+        run: uv sync --locked
         
       - name: Lint with Ruff
         run: uv run ruff check .
@@ -53,7 +50,7 @@ jobs:
           python-version-file: ".python-version"
           
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
         
       - name: Type check with Mypy
         run: uv run mypy src/vertex
@@ -78,7 +75,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
         
       - name: Run tests with coverage
         run: uv run pytest --cov=src/vertex --cov-report=xml --cov-report=term-missing -v
@@ -107,7 +104,7 @@ jobs:
           python-version-file: ".python-version"
           
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
         
       - name: Build package
         run: uv build
@@ -184,7 +181,7 @@ jobs:
           python-version-file: ".python-version"
           
       - name: Install dependencies
-        run: uv sync
+        run: uv sync --locked
         
       - name: Run safety check
         run: uv run pip-audit || true
