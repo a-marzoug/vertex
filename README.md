@@ -6,7 +6,7 @@ Operations Research MCP Server for decision makers.
 
 - **Linear Programming** - Solve optimization problems with linear objectives and constraints
 - **Mixed-Integer Programming** - Handle discrete decisions with integer and binary variables
-- **Domain Templates** - Pre-built tools for production, diet, portfolio, assignment, knapsack, and facility location
+- **Domain Templates** - Pre-built tools for production, portfolio, assignment, knapsack, and facility location
 - **Natural Language Support** - Prompts to help formulate problems from descriptions
 - **Scalable Deployment** - Stateless HTTP transport for Docker/Kubernetes
 
@@ -193,11 +193,8 @@ agent = Agent(
 | `diagnose_infeasibility` | Find conflicting constraints in infeasible problems |
 | `get_model_statistics` | Get model size, sparsity, and type breakdown |
 | `solve_pareto_frontier` | Multi-objective optimization - find Pareto frontier |
-| `solve_sudoku_puzzle` | Solve Sudoku using constraint programming |
-| `solve_n_queens_puzzle` | Solve N-Queens problem |
 | `find_alternative_optimal_solutions` | Find multiple near-optimal solutions |
 | `optimize_production_plan` | Maximize profit given resource constraints |
-| `optimize_diet_plan` | Minimize cost meeting nutritional requirements |
 | `optimize_investment_portfolio` | Maximize returns with allocation constraints |
 | `solve_mixed_integer_program` | Solve MIP with integer/binary variables |
 | `optimize_worker_assignment` | Assign workers to tasks minimizing cost |
