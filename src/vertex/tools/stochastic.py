@@ -115,41 +115,52 @@ def compute_lot_sizing(
 
 def solve_robust_optimization(
     products: list[str],
-    nominal_demand: dict[str, float],
-    demand_deviation: dict[str, float],
     uncertainty_budget: float,
     production_costs: dict[str, float],
-    selling_prices: dict[str, float],
+    nominal_demand: dict[str, float] | None = None,
+    demand_deviation: dict[str, float] | None = None,
+    selling_prices: dict[str, float] | None = None,
     capacity: dict[str, float] | None = None,
+    capacity_deviation: dict[str, float] | None = None,
+    min_total_demand: float | None = None,
 ) -> RobustResult:
     """
     Solve robust optimization with budget uncertainty set.
 
-    Protects against worst-case demand within uncertainty budget.
-    Uses Bertsimas-Sim approach: at most Gamma parameters deviate.
+    Supports two modes:
+    1. Robust Newsvendor (Maximize Profit):
+       - Requires `nominal_demand`, `demand_deviation`, `selling_prices`.
+       - Maximizes profit under worst-case demand.
+    2. Robust Supply (Minimize Cost):
+       - Requires `min_total_demand`, `capacity` (as nominal supply), `capacity_deviation`.
+       - Minimizes cost ensuring demand is met under worst-case supply disruption.
 
     Args:
-        products: Product names
-        nominal_demand: Expected demand per product
-        demand_deviation: Maximum deviation from nominal
-        uncertainty_budget: Gamma - max number of deviating parameters
-        production_costs: Cost per unit
-        selling_prices: Revenue per unit sold
-        capacity: Optional production limits
+        products: Product or supplier names.
+        uncertainty_budget: Gamma - max number of deviating parameters.
+        production_costs: Cost per unit.
+        nominal_demand: Expected demand per product (Mode 1).
+        demand_deviation: Maximum demand deviation (Mode 1).
+        selling_prices: Revenue per unit sold (Mode 1).
+        capacity: Production limits or nominal supply (Mode 2).
+        capacity_deviation: Maximum capacity reduction (Mode 2).
+        min_total_demand: Total demand that must be met (Mode 2).
 
     Returns:
-        Robust solution protecting against worst-case scenarios
+        Robust solution protecting against worst-case scenarios.
     """
     from vertex.solvers.stochastic import solve_robust
 
     return solve_robust(
         products,
-        nominal_demand,
-        demand_deviation,
         uncertainty_budget,
         production_costs,
+        nominal_demand,
+        demand_deviation,
         selling_prices,
         capacity,
+        capacity_deviation,
+        min_total_demand,
     )
 
 
@@ -240,6 +251,8 @@ def simulate_production_monte_carlo(
     selling_prices: dict[str, float],
     production_costs: dict[str, float],
     shortage_costs: dict[str, float],
+    yield_mean: dict[str, float] | None = None,
+    yield_std: dict[str, float] | None = None,
     num_simulations: int = 10000,
 ) -> "MonteCarloResult":
     """
@@ -253,6 +266,8 @@ def simulate_production_monte_carlo(
         selling_prices: Revenue per unit sold
         production_costs: Cost per unit produced
         shortage_costs: Penalty per unit of unmet demand
+        yield_mean: Expected yield rate (default 1.0)
+        yield_std: Yield rate standard deviation (default 0.0)
         num_simulations: Number of simulation runs
 
     Returns:
@@ -268,6 +283,8 @@ def simulate_production_monte_carlo(
         selling_prices,
         production_costs,
         shortage_costs,
+        yield_mean,
+        yield_std,
         num_simulations,
     )
 

@@ -264,18 +264,20 @@ def solve_lot_sizing(
 
 def solve_robust(
     products: list[str],
-    nominal_demand: dict[str, float],
-    demand_deviation: dict[str, float],
     uncertainty_budget: float,
     production_costs: dict[str, float],
-    selling_prices: dict[str, float],
+    nominal_demand: dict[str, float] | None = None,
+    demand_deviation: dict[str, float] | None = None,
+    selling_prices: dict[str, float] | None = None,
     capacity: dict[str, float] | None = None,
+    capacity_deviation: dict[str, float] | None = None,
+    min_total_demand: float | None = None,
 ) -> "RobustResult":
     """
     Solve robust optimization using Bertsimas-Sim formulation.
 
-    Worst-case profit = sum(price * min(prod, demand - z*deviation)) - cost*prod
-    where sum(z) <= Gamma and 0 <= z <= 1
+    Mode 1: Robust Newsvendor (Demand Uncertainty) - Maximize Profit
+    Mode 2: Robust Supply (Capacity Uncertainty) - Minimize Cost
     """
     import time
 
@@ -293,43 +295,98 @@ def solve_robust(
             solve_time=0,
         )
 
-    # Production variables
-    prod = {
-        p: solver.NumVar(
-            0,
-            capacity.get(p, solver.infinity()) if capacity else solver.infinity(),
-            f"prod_{p}",
+    # Determine mode
+    is_supply_mode = min_total_demand is not None
+
+    if is_supply_mode:
+        # Mode 2: Minimize Cost with Uncertain Supply
+        if capacity is None or capacity_deviation is None:
+            return RobustResult(
+                status="ERROR",
+                objective_value=0,
+                worst_case_objective=0,
+                variable_values={},
+                binding_scenarios=[],
+                solve_time=0,
+            )
+
+        # Variables: order quantity
+        # order <= nominal capacity
+        order = {
+            p: solver.NumVar(0, capacity.get(p, 0), f"order_{p}") for p in products
+        }
+
+        # Robust constraint variables
+        # We need: sum(order) - max_loss >= D
+        # max_loss = lambda * Gamma + sum(rho)
+        lam = solver.NumVar(0, solver.infinity(), "lambda")
+        rho = {p: solver.NumVar(0, solver.infinity(), f"rho_{p}") for p in products}
+
+        # Robust constraint
+        # lambda + rho_p >= max(0, order_p - reduced_capacity_p)
+        # reduced_capacity_p = capacity_p - deviation_p
+        for p in products:
+            reduced_cap = capacity[p] - capacity_deviation.get(p, 0)
+            # rho >= order - reduced_cap  =>  rho - order >= -reduced_cap
+            solver.Add(lam + rho[p] >= order[p] - reduced_cap)
+
+        # sum(order) - (lambda*Gamma + sum(rho)) >= Demand
+        robust_loss = lam * uncertainty_budget + sum(rho[p] for p in products)
+        solver.Add(sum(order[p] for p in products) - robust_loss >= min_total_demand)
+
+        # Minimize Cost
+        cost = sum(production_costs.get(p, 0) * order[p] for p in products)
+        solver.Minimize(cost)
+
+    else:
+        # Mode 1: Maximize Profit with Uncertain Demand
+        if nominal_demand is None or demand_deviation is None or selling_prices is None:
+            return RobustResult(
+                status="ERROR",
+                objective_value=0,
+                worst_case_objective=0,
+                variable_values={},
+                binding_scenarios=[],
+                solve_time=0,
+            )
+
+        # Production variables
+        prod = {
+            p: solver.NumVar(
+                0,
+                capacity.get(p, solver.infinity()) if capacity else solver.infinity(),
+                f"prod_{p}",
+            )
+            for p in products
+        }
+
+        # Dual variables for robust counterpart
+        lam = solver.NumVar(0, solver.infinity(), "lambda")
+        mu = {p: solver.NumVar(0, solver.infinity(), f"mu_{p}") for p in products}
+        sales = {
+            p: solver.NumVar(0, solver.infinity(), f"sales_{p}") for p in products
+        }
+
+        # Budget constraint
+        solver.Add(
+            lam * uncertainty_budget + sum(mu[p] for p in products)
+            <= uncertainty_budget * max(1, len(products))
         )
-        for p in products
-    }
 
-    # Dual variables for robust counterpart
-    # For each product: sales <= demand - z * deviation
-    # Robust: sales <= nominal_demand - lambda - mu_p * deviation
-    # where lambda + sum(mu) <= Gamma, mu >= 0
+        # Sales constraints (robust)
+        for p in products:
+            solver.Add(sales[p] <= prod[p])
+            solver.Add(
+                sales[p]
+                <= nominal_demand[p] - lam - mu[p] * demand_deviation.get(p, 0)
+            )
 
-    lam = solver.NumVar(0, solver.infinity(), "lambda")
-    mu = {p: solver.NumVar(0, solver.infinity(), f"mu_{p}") for p in products}
-    sales = {p: solver.NumVar(0, solver.infinity(), f"sales_{p}") for p in products}
-
-    # Budget constraint
-    solver.Add(
-        lam * uncertainty_budget + sum(mu[p] for p in products)
-        <= uncertainty_budget * max(1, len(products))
-    )
-
-    # Sales constraints (robust)
-    for p in products:
-        # sales <= prod
-        solver.Add(sales[p] <= prod[p])
-        # sales <= nominal - lambda - mu * deviation (worst case)
-        solver.Add(sales[p] <= nominal_demand[p] - lam - mu[p] * demand_deviation[p])
-
-    # Maximize worst-case profit
-    profit = sum(
-        selling_prices[p] * sales[p] - production_costs[p] * prod[p] for p in products
-    )
-    solver.Maximize(profit)
+        # Maximize worst-case profit
+        profit = sum(
+            selling_prices[p] * sales[p] - production_costs.get(p, 0) * prod[p]
+            for p in products
+        )
+        solver.Maximize(profit)
 
     status = solver.Solve()
     solve_time = time.time() - start
@@ -344,14 +401,19 @@ def solve_robust(
             solve_time=solve_time,
         )
 
-    # Find binding scenarios (where mu > 0)
-    binding = [p for p in products if mu[p].solution_value() > 0.01]
+    # Extract results
+    if is_supply_mode:
+        variable_vals = {p: round(order[p].solution_value(), 2) for p in products}
+        binding = [p for p in products if rho[p].solution_value() > 0.01]
+    else:
+        variable_vals = {p: round(prod[p].solution_value(), 2) for p in products}
+        binding = [p for p in products if mu[p].solution_value() > 0.01]
 
     return RobustResult(
         status="OPTIMAL",
         objective_value=round(solver.Objective().Value(), 2),
         worst_case_objective=round(solver.Objective().Value(), 2),
-        variable_values={p: round(prod[p].solution_value(), 2) for p in products},
+        variable_values=variable_vals,
         binding_scenarios=binding,
         solve_time=round(solve_time, 4),
     )
@@ -483,10 +545,13 @@ def run_monte_carlo_production(
     selling_prices: dict[str, float],
     production_costs: dict[str, float],
     shortage_costs: dict[str, float],
+    yield_mean: dict[str, float] | None = None,
+    yield_std: dict[str, float] | None = None,
     num_simulations: int = 10000,
 ) -> "MonteCarloResult":
     """
     Run Monte Carlo simulation for production planning profit distribution.
+    Supports uncertain production yields.
     """
     import numpy as np
 
@@ -496,17 +561,32 @@ def run_monte_carlo_production(
     profits = np.zeros(num_simulations)
 
     for p in products:
+        # Demand uncertainty
         demands = np.random.normal(mean_demands[p], std_demands[p], num_simulations)
         demands = np.maximum(demands, 0)
-        q = production_quantities[p]
 
-        sales = np.minimum(q, demands)
-        shortage = np.maximum(demands - q, 0)
+        # Yield uncertainty
+        q_target = production_quantities[p]
+        if yield_mean and yield_std and p in yield_mean:
+            yields = np.random.normal(yield_mean[p], yield_std.get(p, 0), num_simulations)
+            yields = np.maximum(yields, 0) # No negative yield
+            q_actual = q_target * yields
+        else:
+            q_actual = np.full(num_simulations, q_target)
 
+        sales = np.minimum(q_actual, demands)
+        shortage = np.maximum(demands - q_actual, 0)
+
+        # Assuming cost is based on TARGET production (input), not yield?
+        # Usually in wafer fab, you pay for the wafer (target), and get yield.
+        # Scenario 6: Wafer Cost $5000. Yield Rate N(...).
+        # So Cost is deterministic based on input quantity (wafers).
+        # Revenue is random based on yield.
+        
         profits += (
             selling_prices[p] * sales
-            - production_costs[p] * q
-            - shortage_costs[p] * shortage
+            - production_costs[p] * q_target
+            - shortage_costs.get(p, 0) * shortage
         )
 
     return MonteCarloResult(

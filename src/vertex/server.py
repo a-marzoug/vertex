@@ -72,7 +72,6 @@ from vertex.tools.stochastic import (
     solve_quadratic_program,
     solve_robust_optimization,
 )
-from vertex.tools.tuning import select_solver
 from vertex.tools.templates.assignment import optimize_assignment
 from vertex.tools.templates.facility import optimize_facility_location
 from vertex.tools.templates.healthcare import optimize_resource_allocation
@@ -82,6 +81,7 @@ from vertex.tools.templates.portfolio import optimize_portfolio
 from vertex.tools.templates.production import optimize_production
 from vertex.tools.templates.supplychain import optimize_supply_chain
 from vertex.tools.templates.workforce import optimize_workforce_schedule
+from vertex.tools.tuning import select_solver
 
 mcp = FastMCP(
     SERVER_NAME,
