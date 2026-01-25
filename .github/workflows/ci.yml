@@ -12,9 +12,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lockfile-check:
+    name: Check Lockfile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v1
+        
+      - name: Check lockfile is up-to-date
+        run: uv lock --check
+
   lint:
     name: Lint & Format Check
     runs-on: ubuntu-latest
+    needs: [lockfile-check]
     steps:
       - uses: actions/checkout@v4
       
@@ -38,6 +51,7 @@ jobs:
   type-check:
     name: Type Check
     runs-on: ubuntu-latest
+    needs: [lockfile-check]
     steps:
       - uses: actions/checkout@v4
       
@@ -58,6 +72,7 @@ jobs:
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
+    needs: [lockfile-check]
     strategy:
       fail-fast: false
       matrix:
@@ -169,6 +184,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    needs: [lockfile-check]
     steps:
       - uses: actions/checkout@v4
       
