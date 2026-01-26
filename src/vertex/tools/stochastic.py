@@ -212,7 +212,7 @@ def simulate_newsvendor_monte_carlo(
     mean_demand: float,
     std_demand: float,
     num_simulations: int = 10000,
-) -> "MonteCarloResult":
+) -> MonteCarloResult:
     """
     Run Monte Carlo simulation for newsvendor profit distribution.
 
@@ -254,7 +254,7 @@ def simulate_production_monte_carlo(
     yield_mean: dict[str, float] | None = None,
     yield_std: dict[str, float] | None = None,
     num_simulations: int = 10000,
-) -> "MonteCarloResult":
+) -> MonteCarloResult:
     """
     Run Monte Carlo simulation for multi-product production planning.
 
@@ -299,7 +299,7 @@ def schedule_crew(
     max_shifts_per_worker: int | None = None,
     min_rest_between_shifts: int = 0,
     time_limit_seconds: int = 30,
-) -> "CrewScheduleResult":
+) -> CrewScheduleResult:
     """
     Solve crew/shift scheduling with constraints.
 
@@ -340,7 +340,7 @@ def solve_chance_constrained_production(
     selling_prices: dict[str, float],
     service_level: float = 0.95,
     capacity: dict[str, float] | None = None,
-) -> "ChanceConstrainedResult":
+) -> ChanceConstrainedResult:
     """
     Solve chance-constrained production planning.
 
@@ -378,7 +378,7 @@ def pack_rectangles_2d(
     max_bins: int | None = None,
     allow_rotation: bool = True,
     time_limit_seconds: int = 30,
-) -> "BinPacking2DResult":
+) -> BinPacking2DResult:
     """
     Solve 2D bin packing - pack rectangles into bins.
 
@@ -408,7 +408,7 @@ def design_network(
     arc_capacities: dict[str, float],
     arc_variable_costs: dict[str, float],
     time_limit_seconds: int = 30,
-) -> "NetworkDesignResult":
+) -> NetworkDesignResult:
     """
     Solve capacitated network design - decide which arcs to build.
 
@@ -441,7 +441,7 @@ def solve_quadratic_assignment(
     flow_matrix: dict[str, dict[str, float]],
     distance_matrix: dict[str, dict[str, float]],
     time_limit_seconds: int = 30,
-) -> "QAPResult":
+) -> QAPResult:
     """
     Solve Quadratic Assignment Problem - assign facilities to locations.
 
@@ -470,7 +470,7 @@ def find_steiner_tree(
     edges: list[dict[str, Any]],
     terminals: list[str],
     time_limit_seconds: int = 30,
-) -> "SteinerTreeResult":
+) -> SteinerTreeResult:
     """
     Solve Steiner Tree - connect terminal nodes with minimum total edge weight.
 
@@ -497,7 +497,7 @@ def optimize_multi_echelon_inventory(
     lead_times: dict[str, float],
     holding_costs: dict[str, float],
     service_levels: dict[str, float],
-) -> "MultiEchelonResult":
+) -> MultiEchelonResult:
     """
     Optimize multi-echelon inventory - compute base-stock levels.
 
@@ -529,7 +529,7 @@ def solve_quadratic_program(
     b_ineq: list[float] | None = None,
     lower_bounds: list[float] | None = None,
     upper_bounds: list[float] | None = None,
-) -> "QPResult":
+) -> QPResult:
     """
     Solve Quadratic Programming problem.
 
@@ -563,7 +563,7 @@ def optimize_portfolio_qp(
     risk_free_rate: float = 0.0,
     max_weight: float = 1.0,
     min_weight: float = 0.0,
-) -> "PortfolioQPResult":
+) -> PortfolioQPResult:
     """
     Solve Markowitz mean-variance portfolio optimization.
 
