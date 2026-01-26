@@ -100,13 +100,7 @@ jobs:
       - name: Run tests with coverage
         run: uv run pytest --cov=src/vertex --cov-report=xml --cov-report=term-missing -v
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        if: matrix.python-version == '3.13' && matrix.os == 'ubuntu-latest'
-        with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+
 
   build:
     name: Build Package
