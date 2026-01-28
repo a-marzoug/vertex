@@ -4,7 +4,7 @@ This guide will help you set up the Vertex MCP Server and run your first optimiz
 
 ## Prerequisites
 
-- **Python 3.12+** or **Docker**
+- **python 3.13+** or **Docker**
 - A Matrix Control Protocol (MCP) client, such as:
   - [Claude Desktop App](https://claude.ai/download)
   - [MCP Inspector](https://github.com/modelcontextprotocol/inspector)

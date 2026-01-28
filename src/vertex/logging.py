@@ -25,7 +25,7 @@ def configure_logging(
     # Set up standard library logging
     logging.basicConfig(
         format="%(message)s",
-        stream=sys.stdout,
+        stream=sys.stderr,
         level=getattr(logging, level.upper()),
     )
 
